@@ -1,8 +1,10 @@
 module Explorer.State where
 
+import Prelude
 import Data.Maybe (Maybe(..))
 import Data.Tuple (Tuple(..))
-import Explorer.I18n.Lang (Language(..))
+import Explorer.I18n.Lang (Language(..), translate)
+import Explorer.I18n.Lenses (common, cTitle) as I18nL
 import Explorer.Routes (Route(..))
 import Explorer.Types.State (DashboardAPICode(..), Search(..), State, SearchEpochSlotQuery)
 import Explorer.Util.Factory (mkCAddress)
@@ -19,7 +21,11 @@ initialState =
         , subscriptions: []
         }
     , viewStates:
-        { dashboard:
+        { globalViewState:
+            { gViewMobileMenuOpenend: false
+            , gViewTitle: translate (I18nL.common <<< I18nL.cTitle) English
+            }
+        ,  dashboard:
             { dbViewBlocksExpanded: false
             , dbViewBlockPagination: minPagination
             , dbViewTxsExpanded: false
@@ -68,3 +74,6 @@ maxSlotInEpoch = 21600
 
 minPagination :: Int
 minPagination = 1 -- Note: We do start with 1 (not 0)
+
+addressQRImageId :: String
+addressQRImageId = "qr_image_id"
