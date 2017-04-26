@@ -1,11 +1,10 @@
 module Main where
 
-import Prelude (($), (<$>), (<<<), bind, pure, const)
 import Control.Bind ((=<<))
+import Control.Comonad (extract)
 import Control.Monad.Eff (Eff)
 import Control.Monad.Eff.Now (NOW, nowDateTime)
 import Control.SocketIO.Client (SocketIO, connect, on)
-import Control.Comonad (extract)
 import DOM (DOM)
 import Data.Lens (set)
 import Data.Maybe (Maybe(..))
@@ -20,12 +19,13 @@ import Explorer.Util.Config (hostname, isProduction, secureProtocol)
 import Explorer.View.Layout (view)
 import Network.HTTP.Affjax (AJAX)
 import Pos.Explorer.Socket.Methods (ServerEvent(..))
+import Prelude (bind, const, not, pure, ($), (<$>), (<<<))
 import Pux (App, Config, CoreEffects, Update, renderToDOM, start)
 import Pux.Devtool (Action, start) as Pux.Devtool
 import Pux.Router (sampleUrl)
 import Signal (Signal, (~>))
-import Signal.Time (every, second)
 import Signal.Channel (channel, subscribe)
+import Signal.Time (every, second)
 
 type AppEffects = (dom :: DOM, ajax :: AJAX, socket :: SocketIO, now :: NOW)
 
@@ -38,7 +38,7 @@ config state = do
   -- socket
   actionChannel <- channel $ Ex.SocketConnected false
   let socketSignal = subscribe actionChannel :: Signal Ex.Action
-  socketHost <- Ex.mkSocketHost (secureProtocol isProduction) <$> hostname
+  socketHost <- Ex.mkSocketHost (secureProtocol $ not isProduction) <$> hostname
   socket' <- connect socketHost
   on socket' Ex.connectEvent $ Ex.connectHandler actionChannel
   on socket' Ex.closeEvent $ Ex.closeHandler actionChannel
