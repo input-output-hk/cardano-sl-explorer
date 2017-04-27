@@ -159,6 +159,7 @@ subscribeAddr caddr sessId = do
         sessId
         (sformat ("address "%shown) addr)
         (csAddressSubscribers . at addr . non S.empty . at sessId)
+    logDebug $ sformat ("Client #"%shown%" subscribeAddr") sessId
 
 unsubscribeAddr
     :: (MonadState ConnectionsState m, WithLogger m)
@@ -171,6 +172,7 @@ unsubscribeAddr sessId = do
             sessId
             (sformat ("address "%shown) addr)
             (csAddressSubscribers . at addr . non S.empty . at sessId)
+    logDebug $ sformat ("Client #"%shown%" unsubscribeAddr") sessId
 
 subscribeBlocks
     :: (MonadState ConnectionsState m, WithLogger m)
@@ -179,6 +181,7 @@ subscribeBlocks sessId = do
     -- TODO: set ChainDifficulty:
     -- csClients . at sessId . _Just . ccBlock .= Just pId
     subscribe sessId "blockchain" (csBlocksSubscribers . at sessId)
+    logDebug $ sformat ("Client #"%shown%" subscribeBlocks") sessId
 
 unsubscribeBlocks
     :: (MonadState ConnectionsState m, WithLogger m)
@@ -186,16 +189,21 @@ unsubscribeBlocks
 unsubscribeBlocks sessId = do
     csClients . at sessId . _Just . ccBlock .= Nothing
     unsubscribe sessId "blockchain" (csBlocksSubscribers . at sessId)
+    logDebug $ sformat ("Client #"%shown%" unsubscribeBlocks") sessId
 
 subscribeTxs
     :: (MonadState ConnectionsState m, WithLogger m)
     => SocketId -> m ()
-subscribeTxs sessId = subscribe sessId "txs" (csTxsSubscribers . at sessId)
+subscribeTxs sessId = do
+    subscribe sessId "txs" (csTxsSubscribers . at sessId)
+    logDebug $ sformat ("Client #"%shown%" subscribeTxs") sessId
 
 unsubscribeTxs
     :: (MonadState ConnectionsState m, WithLogger m)
     => SocketId -> m ()
-unsubscribeTxs sessId = unsubscribe sessId "txs" (csTxsSubscribers . at sessId)
+unsubscribeTxs sessId = do
+  unsubscribe sessId "txs" (csTxsSubscribers . at sessId)
+  logDebug $ sformat ("Client #"%shown%" unsubscribeTxs") sessId
 
 unsubscribeFully
     :: (MonadState ConnectionsState m, WithLogger m)
