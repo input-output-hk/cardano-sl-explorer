@@ -38,7 +38,7 @@ config state = do
   -- socket
   actionChannel <- channel $ Ex.SocketConnected false
   let socketSignal = subscribe actionChannel :: Signal Ex.Action
-  socketHost <- Ex.mkSocketHost (secureProtocol false) <$> hostname
+  socketHost <- Ex.mkSocketHost (secureProtocol true) <$> hostname
   socket' <- connect socketHost
   on socket' Ex.connectEvent $ Ex.connectHandler actionChannel
   on socket' Ex.closeEvent $ Ex.closeHandler actionChannel
