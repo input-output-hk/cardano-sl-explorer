@@ -5,7 +5,7 @@ import Data.Lens ((^.))
 import Data.Maybe (Maybe(..), fromMaybe)
 import Network.RemoteData (RemoteData(..))
 import Explorer.I18n.Lang (Language, translate)
-import Explorer.I18n.Lenses (common, cBack2Dashboard, cDateFormat, cLoading, cTransaction, txNotFound, txFees, cSummary, tx, cTotalOutput, txRelayed, txIncluded, txTime) as I18nL
+import Explorer.I18n.Lenses (common, cBack2Dashboard, cDateFormat, cLoading, cTransaction, txNotFound, txFees, cSummary, tx, cTotalOutput, txIncluded, txTime) as I18nL
 import Explorer.Lenses.State (currentTxSummary, lang)
 import Explorer.Routes (Route(..), toUrl)
 import Explorer.Types.Actions (Action)
@@ -84,12 +84,6 @@ summaryItems (CTxSummary txSummary) lang =
                                 Nothing -> noData
                                 Just bTime' -> show $ bTime' ^. _CNetworkAddress
                 in bHeight <> " (" <> bTime <> ")"
-      , currency: Nothing
-      }
-    , { label: translate (I18nL.tx <<< I18nL.txRelayed) lang
-      , value:  case txSummary ^. ctsRelayedBy of
-                    Nothing -> noData
-                    Just relayedBy -> show $ relayedBy ^. _CNetworkAddress
       , currency: Nothing
       }
     , { label: translate (I18nL.common <<< I18nL.cTotalOutput) lang
