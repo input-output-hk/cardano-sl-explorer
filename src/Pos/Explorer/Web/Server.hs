@@ -44,7 +44,7 @@ import           Pos.Block.Core                 (Block, MainBlock, mainBlockSlot
                                                  mainBlockTxPayload, mcdSlot)
 import           Pos.Constants                  (genesisHash)
 import           Pos.DB.Class                   (MonadDBRead)
-import           Pos.Slotting                   (MonadSlots (..), getSlotStart)
+import           Pos.Slotting                   (MonadSlots (..), getSlotStartPure, getSlottingData)
 import           Pos.Ssc.GodTossing             (SscGodTossing)
 import           Pos.Txp                        (Tx (..), TxAux, TxId, TxOutAux (..),
                                                  getLocalTxs, getMemPool, mpLocalTxs,
@@ -672,8 +672,9 @@ getBlockchainTxs origOff origLim = do
     fmap concat $ flip unfoldrM (origOff, origLim, tip) $
         \(o, l, h) -> runMaybeT $ unfolder o l h
 
+-- TODO: Add a getSlotStartImprecise to cardano-sl itself (in Pos.Slotting.Util)
 getBlkSlotStart :: MonadSlots m => MainBlock ssc -> m (Maybe Timestamp)
-getBlkSlotStart blk = getSlotStart $ blk ^. gbHeader . gbhConsensus . mcdSlot
+getBlkSlotStart blk = getSlotStartPure True (blk ^. gbHeader . gbhConsensus . mcdSlot) <$> getSlottingData
 
 topsortTxsOrFail :: (MonadThrow m, Eq a) => (a -> WithHash Tx) -> [a] -> m [a]
 topsortTxsOrFail f =
