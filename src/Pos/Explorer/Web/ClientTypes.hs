@@ -51,7 +51,7 @@ import qualified Pos.DB.GState          as GS
 import           Pos.Explorer           (TxExtra (..))
 import           Pos.Lrc                (getLeaders)
 import           Pos.Merkle             (getMerkleRoot, mtRoot)
-import           Pos.Slotting           (MonadSlots (..), getSlotStart)
+import           Pos.Slotting           (MonadSlots (..), getSlotStartPure, getSlottingData)
 import           Pos.Ssc.GodTossing     (SscGodTossing)
 import           Pos.Txp                (Tx (..), TxId, TxOut (..), TxOutAux (..), txpTxs,
                                          _txOutputs)
@@ -147,7 +147,8 @@ toBlockEntry
     -> m CBlockEntry
 toBlockEntry blk = do
 
-    blkSlotStart      <- getSlotStart (blk ^. gbHeader . gbhConsensus . mcdSlot)
+    -- TODO: Add a getSlotStartImprecise to cardano-sl itself (in Pos.Slotting.Util)
+    blkSlotStart      <- getSlotStartPure True (blk ^. gbHeader . gbhConsensus . mcdSlot) <$> getSlottingData
 
     -- Get the header slot, from which we can fetch epoch and slot index.
     let blkHeaderSlot = blk ^. mainBlockSlot
