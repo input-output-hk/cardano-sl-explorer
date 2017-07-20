@@ -1,6 +1,7 @@
 module Explorer.State where
 
 import Prelude
+
 import DOM.Node.Types (ElementId(..))
 import Data.DateTime.Instant (instant, toDateTime)
 import Data.Maybe (Maybe(..), fromJust)
@@ -56,6 +57,12 @@ initialState =
             { blsViewPagination: PageNumber minPagination
             , blsViewPaginationEditable: false
             }
+        , genesisBlockViewState:
+            { gblAddressInfosPagination: PageNumber minPagination
+            , gblMaxAddressInfosPagination: NotAsked
+            , gblAddressInfosPaginationEditable: false
+            , gblLoadingAddressInfosPagination: false
+            }
         }
     , latestBlocks: NotAsked
     , currentBlockSummary: NotAsked
@@ -65,6 +72,8 @@ initialState =
     , currentCAddress: mkCAddress ""
     , currentAddressSummary: NotAsked
     , currentBlocksResult: NotAsked
+    , currentCGenesisSummary: NotAsked
+    , currentCGenesisAddressInfos: NotAsked
     , errors: []
     , loading: false
     , now: toDateTime $ unsafePartial $ fromJust $ instant $ Milliseconds 0.0
