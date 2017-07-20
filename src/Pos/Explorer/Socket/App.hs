@@ -16,7 +16,7 @@ import           Control.Lens                     ((<<.=))
 import           Control.Monad.Trans.Control      (MonadBaseControl)
 import qualified Data.Set                         as S
 import           Data.Time.Units                  (Millisecond)
-import           Formatting                       (int, sformat, (%))
+import           Formatting                       (int, sformat, (%), shown)
 import qualified GHC.Exts                         as Exts
 import           Network.EngineIO                 (SocketId)
 import           Network.EngineIO.Snap            (snapAPI)
@@ -47,18 +47,19 @@ import           Pos.Explorer.Socket.Methods      (ClientEvent (..), ServerEvent
                                                    getBlockTxs, getBlocksFromTo,
                                                    getTxInfo, notifyAddrSubscribers,
                                                    notifyBlocksLastPageSubscribers,
+                                                   notifyTxSubscribers,
                                                    notifyTxsSubscribers, startSession,
                                                    subscribeAddr,
                                                    subscribeBlocksLastPage,
-                                                   subscribeTxs,
+                                                   subscribeTx, subscribeTxs,
                                                    unsubscribeAddr,
                                                    unsubscribeBlocksLastPage,
-                                                   unsubscribeTxs)
+                                                   unsubscribeTx, unsubscribeTxs)
 import           Pos.Explorer.Socket.Util         (emitJSON, forkAccompanion, on,
                                                    on_, regroupBySnd,
                                                    runPeriodicallyUnless)
-import           Pos.Explorer.Web.ClientTypes     (cteId, tiToTxEntry)
-import           Pos.Explorer.Web.Server          (ExplorerMode, getMempoolTxs)
+import           Pos.Explorer.Web.ClientTypes     (cteId, ctsId, tiToTxEntry, tiToCTxId)
+import           Pos.Explorer.Web.Server          (ExplorerMode, getMempoolTxs, getTxSummary)
 
 
 data NotifierSettings = NotifierSettings
@@ -85,10 +86,12 @@ notifierHandler connVar loggerName = do
     _ <- asHandler' startSession
     on  (Subscribe SubAddr)            $ asHandler  subscribeAddr
     on_ (Subscribe SubBlockLastPage)   $ asHandler_ subscribeBlocksLastPage
-    on_ (Subscribe SubTxs)              $ asHandler_ subscribeTxs
+    on  (Subscribe SubTx)              $ asHandler  subscribeTx
+    on_ (Subscribe SubTxs)             $ asHandler_ subscribeTxs
     on_ (Unsubscribe SubAddr)          $ asHandler_ unsubscribeAddr
     on_ (Unsubscribe SubBlockLastPage) $ asHandler_ unsubscribeBlocksLastPage
-    on_ (Unsubscribe SubTxs)            $ asHandler_ unsubscribeTxs
+    on_ (Unsubscribe SubTx)            $ asHandler_ unsubscribeTx
+    on_ (Unsubscribe SubTxs)           $ asHandler_ unsubscribeTxs
 
     on_ CallMe                         $ emitJSON CallYou empty
     appendDisconnectHandler . void     $ asHandler_ finishSession
@@ -158,15 +161,24 @@ periodicPollChanges connVar closed =
             let newLocalTxs = S.toList $ mempoolTxs `S.difference` wasMempoolTxs
 
             let allTxs = newBlockchainTxs <> newLocalTxs
-            let cTxEntries = map tiToTxEntry allTxs
             txInfos <- Exts.toList . regroupBySnd <$> mapM getTxInfo allTxs
 
-            -- notify abuot transactions
+            -- notify about addresses w/ new transactions
             forM_ txInfos $ \(addr, cTxBriefs) -> do
                 notifyAddrSubscribers addr cTxBriefs
                 logDebug $ sformat ("Notified address "%addressF%" about "
                            %int%" transactions") addr (length cTxBriefs)
 
+            -- get `CTxSummary` from all new transactions
+            cTxSummaries <- mapM (getTxSummary . tiToCTxId) allTxs
+
+            -- notify about transaction summary updates
+            forM_ cTxSummaries $ \(cTxSummary) -> do
+                notifyTxSubscribers cTxSummary
+                logDebug $ sformat ("Broadcasted transaction summary with id=#"%shown%" ")
+                              (ctsId cTxSummary)
+
+            let cTxEntries = map tiToTxEntry allTxs
             -- notify about transactions
             unless (null cTxEntries) $ do
                 notifyTxsSubscribers cTxEntries
