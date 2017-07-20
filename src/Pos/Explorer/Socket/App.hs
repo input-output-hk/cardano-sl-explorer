@@ -85,10 +85,10 @@ notifierHandler connVar loggerName = do
     _ <- asHandler' startSession
     on  (Subscribe SubAddr)            $ asHandler  subscribeAddr
     on_ (Subscribe SubBlockLastPage)   $ asHandler_ subscribeBlocksLastPage
-    on_ (Subscribe SubTx)              $ asHandler_ subscribeTxs
+    on_ (Subscribe SubTxs)              $ asHandler_ subscribeTxs
     on_ (Unsubscribe SubAddr)          $ asHandler_ unsubscribeAddr
     on_ (Unsubscribe SubBlockLastPage) $ asHandler_ unsubscribeBlocksLastPage
-    on_ (Unsubscribe SubTx)            $ asHandler_ unsubscribeTxs
+    on_ (Unsubscribe SubTxs)            $ asHandler_ unsubscribeTxs
 
     on_ CallMe                         $ emitJSON CallYou empty
     appendDisconnectHandler . void     $ asHandler_ finishSession

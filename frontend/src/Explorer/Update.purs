@@ -665,7 +665,7 @@ update (ReceiveLastTxs (Right txs)) state =
         else []
     }
     where
-        subItem = mkSocketSubscriptionItem (SocketSubscription SubTx) SocketNoData
+        subItem = mkSocketSubscriptionItem (SocketSubscription SubTxs) SocketNoData
 
 update (ReceiveLastTxs (Left error)) state = noEffects $
     set loading false $

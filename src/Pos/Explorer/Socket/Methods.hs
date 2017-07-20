@@ -73,7 +73,7 @@ import           Pos.Explorer.Web.Server        (ExplorerMode, getBlocksLastPage
 data Subscription
     = SubAddr
     | SubBlockLastPage  -- ^ subscribe on blocks last page (newest blocks)
-    | SubTx
+    | SubTxs
     deriving (Show, Generic)
 
 data ClientEvent
