@@ -28,7 +28,7 @@ import Data.Newtype (unwrap)
 import Data.Tuple (Tuple(..), fst, snd)
 import Explorer.Api.Http (fetchAddressSummary, fetchBlockSummary, fetchBlockTxs, fetchBlocksTotalPages, fetchLatestTxs, fetchPageBlocks, fetchTxSummary, searchEpoch)
 import Explorer.Api.Socket (toEvent)
-import Explorer.Api.Types (RequestLimit(..), RequestOffset(..), SocketOffset(..), SocketSubscription(..), SocketSubscriptionData(..))
+import Explorer.Api.Types (SocketOffset(..), SocketSubscription(..), SocketSubscriptionData(..))
 import Explorer.Lenses.State (addressDetail, addressTxPagination, addressTxPaginationEditable, blockDetail, blockTxPagination, blockTxPaginationEditable, blocksViewState, blsViewPagination, blsViewPaginationEditable, connected, connection, currentAddressSummary, currentBlockSummary, currentBlockTxs, currentBlocksResult, currentCAddress, currentTxSummary, dbViewBlockPagination, dbViewBlockPaginationEditable, dbViewBlocksExpanded, dbViewLoadingBlockPagination, dbViewMaxBlockPagination, dbViewSelectedApiCode, dbViewTxsExpanded, errors, gViewMobileMenuOpenend, gViewSearchInputFocused, gViewSearchQuery, gViewSearchTimeQuery, gViewSelectedSearch, gWaypoints, globalViewState, lang, latestBlocks, latestTransactions, loading, route, socket, subscriptions, syncAction, viewStates)
 import Explorer.Routes (Route(..), match, toUrl)
 import Explorer.State (addressQRImageId, emptySearchQuery, emptySearchTimeQuery, headerSearchContainerId, heroSearchContainerId, minPagination, mkSocketSubscriptionItem, mobileMenuSearchContainerId)
@@ -46,8 +46,8 @@ import Explorer.View.Dashboard.Lenses (dashboardViewState)
 import Explorer.View.Dashboard.Transactions (maxTransactionRows)
 import Network.RemoteData (RemoteData(..), _Success, isNotAsked, isSuccess, withDefault)
 import Pos.Explorer.Socket.Methods (ClientEvent(..), Subscription(..))
-import Pos.Explorer.Web.ClientTypes (CAddress(..))
-import Pos.Explorer.Web.Lenses.ClientTypes (_CAddress, _CAddressSummary, caAddress, caTxList)
+import Pos.Explorer.Web.ClientTypes (CAddress(..), CTxId(..))
+import Pos.Explorer.Web.Lenses.ClientTypes (_CAddress, _CAddressSummary, _CTxSummary, caAddress, caTxList, ctsId)
 import Pux (EffModel, noEffects, onlyEffects)
 import Waypoints (WAYPOINT, destroy, waypoint', up) as WP
 
@@ -100,6 +100,15 @@ update (SocketBlocksPageUpdated (Left error)) state = noEffects $
     -- Don't set `latestBlocks` to (Failure error) here
     -- because we would lost all the previous (valid) data in `latestBlocks`
     -- and in the UI. So just add incoming errors ahead of previous errors.
+    over errors (\errors' -> (show error) : errors') state
+
+update (SocketTxUpdated (Right txSummary)) state =
+    noEffects $
+    set currentTxSummary (Success txSummary) state
+
+update (SocketTxUpdated (Left error)) state = noEffects $
+    set currentTxSummary (Failure error) $
+    -- add incoming errors ahead of previous errors
     over errors (\errors' -> (show error) : errors') state
 
 update (SocketTxsUpdated (Right txs)) state =
@@ -678,10 +687,19 @@ update (RequestTxSummary id) state =
           state
     , effects: [ attempt (fetchTxSummary id) >>= pure <<< Just <<< ReceiveTxSummary ]
     }
-update (ReceiveTxSummary (Right tx)) state =
-    noEffects $
-    set loading false $
-    set currentTxSummary (Success tx) state
+update (ReceiveTxSummary (Right txSummary)) state =
+    { state:
+          set loading false $
+          set currentTxSummary (Success txSummary) state
+    , effects:
+          if (syncBySocket $ state ^. syncAction)
+          then [ pure <<< Just $ SocketAddSubscription subItem ]
+          else []
+    }
+    where
+        txId = txSummary ^. (_CTxSummary <<< ctsId)
+        subItem = mkSocketSubscriptionItem (SocketSubscription SubTx) (SocketCTxSummaryData txId)
+
 update (ReceiveTxSummary (Left error)) state =
     noEffects $
     set loading false $
@@ -866,6 +884,7 @@ socketSubscribeEvent socket (SocketSubscriptionItem item) =
         subscribe s e SocketNoData = emit s e
         subscribe s e (SocketOffsetData (SocketOffset o)) = emitData s e o
         subscribe s e (SocketCAddressData (CAddress addr)) = emitData s e addr
+        subscribe s e (SocketCTxSummaryData (CTxId id)) = emitData s e id
 
 socketUnsubscribeEvent :: forall eff . Socket -> SocketSubscriptionItem
     -> Eff (socket :: SocketIO | eff) Unit
