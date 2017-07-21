@@ -351,19 +351,29 @@ getAddressSummary cAddr = do
     when (getAddressType addr == CUnknownAddress) $
         throwM $ Internal "Unknown address type"
 
-    balance <- mkCCoin . fromMaybe (mkCoin 0) <$> EX.getAddrBalance addr
+    balance <- fromMaybe (mkCoin 0) <$> EX.getAddrBalance addr
     txIds <- getNewestFirst <$> EX.getAddrHistory addr
     transactions <- forM txIds $ \id -> do
         extra <- getTxExtraOrFail id
         tx <- getTxMain id extra
         pure $ makeTxBrief tx extra
+
+    isRedeemed <- do
+        if getAddressType addr /= CRedeemAddress then pure Nothing else do
+            redeemAddressCoinPairs <- getRedeemAddressCoinPairs
+            let mGenesisBalance = snd <$> (head $
+                    filter (\(addr', _) -> addr == addr') redeemAddressCoinPairs)
+            case mGenesisBalance of
+                Nothing -> throwM $ Internal "Redeem address not found in genesis"
+                Just genesisBalance -> pure $ Just (balance /= genesisBalance)
+
     pure CAddressSummary
         { caAddress = cAddr
         , caType = getAddressType addr
         , caTxNum = fromIntegral $ length transactions
-        , caBalance = balance
+        , caBalance = mkCCoin balance
         , caTxList = transactions
-        , caIsRedeemed = Nothing
+        , caIsRedeemed = isRedeemed
         }
   where
     getAddressType :: Address -> CAddressType
