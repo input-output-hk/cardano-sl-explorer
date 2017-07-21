@@ -32,7 +32,7 @@ import           Network.Wai                    (Application)
 import qualified Serokell.Util.Base64           as B64
 import           Servant.API                    ((:<|>) ((:<|>)))
 import           Servant.Server                 (Server, ServerT, serve)
-import           System.Wlog                    (logDebug)
+import           System.Wlog                    (logDebug, logWarning)
 
 import           Pos.Communication              (SendActions)
 import           Pos.Crypto                     (WithHash (..), hash, redeemPkBuild,
@@ -57,7 +57,8 @@ import           Pos.Types                      (Address (..), Coin, EpochIndex,
                                                  gbHeader, gbhConsensus,
                                                  getChainDifficulty, makeRedeemAddress,
                                                  mkCoin, siEpoch, siSlot, sumCoins,
-                                                 unsafeIntegerToCoin, unsafeSubCoin)
+                                                 unsafeAddCoin, unsafeIntegerToCoin,
+                                                 unsafeSubCoin)
 import           Pos.Util                       (maybeThrow)
 import           Pos.Util.Chrono                (NewestFirst (..))
 import           Pos.Web                        (serveImpl)
@@ -505,17 +506,45 @@ isRedeemAddress (RedeemAddress _) = True
 isRedeemAddress _                 = False
 
 isAddressRedeemed :: MonadDBRead m => Address -> Coin -> m Bool
-isAddressRedeemed address initialBalance = do
+isAddressRedeemed address genesisBalance = do
   currentBalance <- fromMaybe (mkCoin 0) <$> EX.getAddrBalance address
-  pure $ currentBalance /= initialBalance
+  pure $ currentBalance /= genesisBalance
 
 getGenesisSummary
     :: ExplorerMode m
     => m CGenesisSummary
 getGenesisSummary = do
     redeemAddressCoinPairs <- getRedeemAddressCoinPairs
-    cgsNumRedeemed <- length <$> filterM (uncurry isAddressRedeemed) redeemAddressCoinPairs
-    pure CGenesisSummary {cgsNumTotal = length redeemAddressCoinPairs, ..}
+    -- putting all four in the same fold because all four need to fetch current balance
+    -- and validate whether it exceeds genesis balance
+    (numTotal, numRedeemed, amountRedeemed, amountRemaining) <-
+        foldrM folder (0, 0, mkCoin 0, mkCoin 0) redeemAddressCoinPairs
+    pure CGenesisSummary
+        { cgsNumTotal        = numTotal
+        , cgsNumRedeemed     = numRedeemed
+        , cgsNumRemaining    = numTotal - numRedeemed
+        , cgsAmountRedeemed  = mkCCoin amountRedeemed
+        , cgsAmountRemaining = mkCCoin amountRemaining
+        }
+  where
+    folder (address, genesisBalance) accum@(len, numRedeemed, amountRedeemed, amountRemaining) = do
+        currentBalance <- fromMaybe (mkCoin 0) <$> EX.getAddrBalance address
+        if currentBalance > genesisBalance then do
+            -- Don't want to throw exception here as this endpoint is used not for serving
+            -- specific user requests, but rather general system info.
+            logWarning $ sformat
+                ("Address "%build%" has increased its balance since genesis: " %
+                    "current balance is "%build%", genesis balance is "%build)
+                address currentBalance genesisBalance
+            pure accum
+        else
+            let numRedeemedDelta     = if currentBalance /= genesisBalance then 1 else 0
+                amountRedeemedDelta  = genesisBalance `unsafeSubCoin` currentBalance
+                len'             = len + 1
+                numRedeemed'     = numRedeemed + numRedeemedDelta
+                amountRedeemed'  = amountRedeemed  `unsafeAddCoin` amountRedeemedDelta
+                amountRemaining' = amountRemaining `unsafeAddCoin` currentBalance
+            in pure (len', numRedeemed', amountRedeemed', amountRemaining')
 
 getGenesisAddressInfo
     :: (ExplorerMode m)

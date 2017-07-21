@@ -199,8 +199,11 @@ testEpochSlotSearch _ _ = pure . pure $ [CBlockEntry
 testGenesisSummary
     :: Handler (Either ExplorerError CGenesisSummary)
 testGenesisSummary = pure . pure $ CGenesisSummary
-    { cgsNumTotal    = 2
-    , cgsNumRedeemed = 1
+    { cgsNumTotal        = 2
+    , cgsNumRedeemed     = 1
+    , cgsNumRemaining    = 1
+    , cgsAmountRedeemed  = mkCCoin $ mkCoin 15000000
+    , cgsAmountRemaining = mkCCoin $ mkCoin 2225295000000
     }
 
 testGenesisPagesTotal
