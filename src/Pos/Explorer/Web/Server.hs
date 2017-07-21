@@ -348,7 +348,7 @@ getAddressSummary
 getAddressSummary cAddr = do
     addr <- cAddrToAddr cAddr
 
-    when (isAddressUnknown addr) $
+    when (getAddressType addr == CUnknownAddress) $
         throwM $ Internal "Unknown address type"
 
     balance <- mkCCoin . fromMaybe (mkCoin 0) <$> EX.getAddrBalance addr
@@ -357,17 +357,15 @@ getAddressSummary cAddr = do
         extra <- getTxExtraOrFail id
         tx <- getTxMain id extra
         pure $ makeTxBrief tx extra
-    pure CAddressSummary {
-        caAddress = cAddr,
-        caType = getAddressType addr,
-        caTxNum = fromIntegral $ length transactions,
-        caBalance = balance,
-        caTxList = transactions
-    }
+    pure CAddressSummary
+        { caAddress = cAddr
+        , caType = getAddressType addr
+        , caTxNum = fromIntegral $ length transactions
+        , caBalance = balance
+        , caTxList = transactions
+        , caIsRedeemed = Nothing
+        }
   where
-    isAddressUnknown = \case
-        UnknownAddressType _ _ -> True
-        _ -> False
     getAddressType :: Address -> CAddressType
     getAddressType = \case
         PubKeyAddress _ _ -> CPubKeyAddress
