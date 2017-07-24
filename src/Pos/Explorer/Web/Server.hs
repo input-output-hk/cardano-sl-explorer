@@ -16,6 +16,7 @@ module Pos.Explorer.Web.Server
        , topsortTxsOrFail
        , getMempoolTxs
        , getBlocksLastPage
+       , getTxSummary
        ) where
 
 import           Universum

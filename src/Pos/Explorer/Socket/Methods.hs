@@ -13,13 +13,16 @@ module Pos.Explorer.Socket.Methods
        , finishSession
        , subscribeAddr
        , subscribeBlocksLastPage
+       , subscribeTx
        , subscribeTxs
        , unsubscribeAddr
        , unsubscribeBlocksLastPage
+       , unsubscribeTx
        , unsubscribeTxs
 
        , notifyAddrSubscribers
        , notifyBlocksLastPageSubscribers
+       , notifyTxSubscribers
        , notifyTxsSubscribers
        , getBlocksFromTo
        , addrsTouchedByTx
@@ -55,14 +58,14 @@ import           Universum
 
 import           Pos.Explorer.Aeson.ClientTypes ()
 import           Pos.Explorer.Socket.Holder     (ClientContext, ConnectionsState,
-                                                 ccAddress, ccConnection,
+                                                 ccAddress, ccConnection, ccTx,
                                                  csAddressSubscribers,
                                                  csBlocksPageSubscribers,
                                                  csClients,
-                                                 csTxsSubscribers, mkClientContext)
+                                                 csTxSubscribers, csTxsSubscribers, mkClientContext)
 import           Pos.Explorer.Socket.Util       (EventName (..), emitTo)
-import           Pos.Explorer.Web.ClientTypes   (CAddress, CTxBrief, CTxEntry (..),
-                                                 TxInternal (..), fromCAddress,
+import           Pos.Explorer.Web.ClientTypes   (CAddress, CTxBrief, CTxId, CTxEntry (..),
+                                                 CTxSummary, TxInternal (..), ctsId, fromCAddress,
                                                  toTxBrief)
 import           Pos.Explorer.Web.Error         (ExplorerError (..))
 import           Pos.Explorer.Web.Server        (ExplorerMode, getBlocksLastPage,
@@ -71,9 +74,10 @@ import           Pos.Explorer.Web.Server        (ExplorerMode, getBlocksLastPage
 -- * Event names
 
 data Subscription
-    = SubAddr
+    = SubAddr           -- ^ subscribe on addresses and its transactions
     | SubBlockLastPage  -- ^ subscribe on blocks last page (newest blocks)
-    | SubTx
+    | SubTx             -- ^ subscribe on tx summary
+    | SubTxs            -- ^ subscribe on latest transactions
     deriving (Show, Generic)
 
 data ClientEvent
@@ -88,6 +92,7 @@ instance EventName ClientEvent where
 data ServerEvent
     = AddrUpdated
     | BlocksLastPageUpdated
+    | TxUpdated
     | TxsUpdated
     | CallYou
     deriving (Show, Generic)
@@ -199,6 +204,16 @@ blockPageSubParam sessId =
         , spCliData      = noCliDataKept
         }
 
+txSubParam :: SocketId -> SubscriptionParam CTxId
+txSubParam sessId =
+    SubscriptionParam
+        { spSessId       = sessId
+        , spDesc         = ("txId " <> ) . show
+        , spSubscription = \txId ->
+            csTxSubscribers . at txId . non S.empty . at sessId
+        , spCliData      = ccTx
+        }
+
 txsSubParam :: SocketId -> SubscriptionParam ()
 txsSubParam sessId =
     SubscriptionParam
@@ -230,6 +245,17 @@ unsubscribeBlocksLastPage
     :: SubscriptionMode m
     => SocketId -> m ()
 unsubscribeBlocksLastPage sessId = unsubscribe (blockPageSubParam sessId)
+
+subscribeTx
+    :: SubscriptionMode m
+    => CTxId -> SocketId -> m ()
+subscribeTx cTxId sessId =
+  subscribe cTxId (txSubParam sessId)
+
+unsubscribeTx
+    :: SubscriptionMode m
+    => SocketId -> m ()
+unsubscribeTx sessId = unsubscribe (txSubParam sessId)
 
 subscribeTxs
     :: SubscriptionMode m
@@ -288,6 +314,14 @@ notifyBlocksLastPageSubscribers = do
     recipients <- view csBlocksPageSubscribers
     blocks     <- getBlocksLastPage
     broadcast BlocksLastPageUpdated blocks recipients
+
+notifyTxSubscribers
+    :: NotificationMode m
+    => CTxSummary -> m ()
+notifyTxSubscribers cTxSummary = do
+    let cTxId = ctsId cTxSummary
+    mRecipients <- view $ csTxSubscribers . at cTxId
+    whenJust mRecipients $ broadcast TxUpdated cTxSummary
 
 notifyTxsSubscribers
     :: NotificationMode m
