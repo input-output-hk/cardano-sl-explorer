@@ -31,6 +31,7 @@ translation =
         , cTotalSent: "総送信額"
         , cBlockLead: "スロットリーダー"
         , cSize: "サイズ (bytes)"
+        , cAddressIsRedeemed: "還元済み"
         , cExpand: "開く"
         , cCollapse: "閉じる"
         , cNoData: "データなし"
@@ -123,7 +124,6 @@ translation =
         , gblAddressesNotFound: "そのアドレスは存在しません"
         , gblAddressesError: "アドレス読み込み中にエラーが発生しました."
         , gblAddressRedeemAmount: "還元される額"
-        , gblAddressIsRedeemed: "還元済み"
         }
     , footer:
         { fooResources: "Resources"

@@ -5,10 +5,10 @@ import Prelude
 import Data.Array (length, null, slice)
 import Data.Foldable (for_)
 import Data.Lens ((^.))
-import Data.Maybe (Maybe(..), isJust)
+import Data.Maybe (Maybe(..), fromMaybe, isJust)
 import Data.Monoid (mempty)
 import Explorer.I18n.Lang (Language, translate)
-import Explorer.I18n.Lenses (addNotFound, cAddress, cBack2Dashboard, common, cLoading, cOf, cTransactions, address, addScan, addQrCode, addFinalBalance, tx, txEmpty, txNotFound) as I18nL
+import Explorer.I18n.Lenses (addNotFound, cAddress, cBack2Dashboard, common, cAddressIsRedeemed, cLoading, cOf, cTransactions, cYes, cNo, address, addScan, addQrCode, addFinalBalance, tx, txEmpty, txNotFound) as I18nL
 import Explorer.Lenses.State (_PageNumber, addressDetail, addressTxPagination, addressTxPaginationEditable, currentAddressSummary, lang, viewStates)
 import Explorer.Routes (Route(..), toUrl)
 import Explorer.State (addressQRImageId, minPagination)
@@ -18,7 +18,7 @@ import Explorer.Util.String (formatADA)
 import Explorer.View.Common (currencyCSSClass, getMaxPaginationNumber, mkTxBodyViewProps, mkTxHeaderViewProps, txBodyView, txEmptyContentView, txHeaderView, txPaginationView)
 import Network.RemoteData (RemoteData(..))
 import Pos.Explorer.Web.ClientTypes (CAddressSummary(..), CTxBrief)
-import Pos.Explorer.Web.Lenses.ClientTypes (_CAddress, _CHash, _CTxBrief, _CTxId, caAddress, caBalance, caTxNum, ctbId)
+import Pos.Explorer.Web.Lenses.ClientTypes (_CAddress, _CHash, _CTxBrief, _CTxId, caAddress, caBalance, caIsRedeemed, caTxNum, ctbId)
 import Pux.DOM.Events (onClick) as P
 import Pux.DOM.HTML (HTML) as P
 import Pux.DOM.HTML.Attributes (key) as P
@@ -100,6 +100,13 @@ addressDetailRowItems (CAddressSummary address) lang =
       ,label: translate (I18nL.address <<< I18nL.addFinalBalance) lang
       , value: formatADA (address ^. caBalance) lang
       , mCurrency: Just ADA
+      }
+    , { id: "3"
+      , label: translate (I18nL.common <<< I18nL.cAddressIsRedeemed) lang
+      , value:  if fromMaybe false (address ^. caIsRedeemed)
+                    then translate (I18nL.common <<< I18nL.cYes) lang
+                    else translate (I18nL.common <<< I18nL.cNo) lang
+      , mCurrency: Nothing
       }
     ]
 

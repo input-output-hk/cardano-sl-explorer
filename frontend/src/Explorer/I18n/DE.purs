@@ -31,6 +31,7 @@ translation =
         , cTotalSent: "Insgesamt gesendet"
         , cBlockLead: "Weitergegeben durch"
         , cSize: "Größe (bytes)"
+        , cAddressIsRedeemed: "eingelöst"
         , cExpand: "Aufklappen"
         , cCollapse: "Zuklappen"
         , cNoData: "Keine Daten"
@@ -123,7 +124,6 @@ translation =
         , gblAddressesNotFound: "Adressen existieren nicht."
         , gblAddressesError: "Error beim Laden der Addressen"
         , gblAddressRedeemAmount: "Einzulösender Wert"
-        , gblAddressIsRedeemed: "eingelöst"
         }
     , footer:
         { fooResources: "Ressourcen"

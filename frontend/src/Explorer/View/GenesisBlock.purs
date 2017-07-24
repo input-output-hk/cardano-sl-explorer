@@ -14,7 +14,7 @@ import Data.Foldable (for_)
 import Data.Lens ((^.))
 import Data.Maybe (Maybe(..))
 import Explorer.I18n.Lang (Language, translate)
-import Explorer.I18n.Lenses (cGenesis, cAddress, cAddresses, cOf, common, cLoading, cNo, cSummary, cYes, gblAddressesError, gblAddressesNotFound, gblAddressRedeemAmount, gblAddressIsRedeemed, gblNotFound, gblNumberRedeemedAddresses, genesisBlock) as I18nL
+import Explorer.I18n.Lenses (cGenesis, cAddress, cAddresses, cOf, common, cLoading, cNo, cSummary, cYes, gblAddressesError, gblAddressesNotFound, gblAddressRedeemAmount, cAddressIsRedeemed, gblNotFound, gblNumberRedeemedAddresses, genesisBlock) as I18nL
 import Explorer.Lenses.State (currentCGenesisAddressInfos, currentCGenesisSummary, gblLoadingAddressInfosPagination, gblAddressInfosPagination, gblAddressInfosPaginationEditable, gblMaxAddressInfosPagination, genesisBlockViewState, lang, viewStates)
 import Explorer.Routes (Route(..), toUrl)
 import Explorer.State (minPagination)
@@ -112,7 +112,7 @@ mkAddressInfosHeaderProps lang =
     , { label: translate (I18nL.genesisBlock <<< I18nL.gblAddressRedeemAmount) lang
       , clazz: "amount"
       }
-    , { label: translate (I18nL.genesisBlock <<< I18nL.gblAddressIsRedeemed) lang
+    , { label: translate (I18nL.common <<< I18nL.cAddressIsRedeemed) lang
       , clazz: "redeemed"
       }
     ]
