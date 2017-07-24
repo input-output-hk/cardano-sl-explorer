@@ -1,12 +1,13 @@
 module Explorer.Api.Types where
 
 import Prelude
+
 import Data.Argonaut.Core (Json)
 import Data.Generic (class Generic, gEq, gShow)
 import Data.Newtype (class Newtype)
 import Network.HTTP.Affjax (AffjaxResponse)
 import Pos.Explorer.Socket.Methods (Subscription)
-import Pos.Explorer.Web.ClientTypes (CAddress(..))
+import Pos.Explorer.Web.ClientTypes (CAddress, CTxId)
 import Pos.Explorer.Web.Error (ExplorerError)
 
 type Endpoint = String
@@ -44,6 +45,7 @@ data SocketSubscriptionData
     = SocketNoData                    -- no data sending to backend
     | SocketOffsetData SocketOffset   -- sending value of `SocketOffset`
     | SocketCAddressData CAddress     -- sending value of `CAddress`
+    | SocketCTxSummaryData CTxId      -- subscribe to `CTxSummary` by sending `CTxId`
 
 derive instance gSocketSubscriptionData :: Generic SocketSubscriptionData
 instance eqSocketSubscriptionData :: Eq SocketSubscriptionData where

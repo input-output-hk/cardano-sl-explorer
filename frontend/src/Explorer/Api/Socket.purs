@@ -79,6 +79,12 @@ blocksPageUpdatedEventHandler channel json =
     let result = decodeResult' json in
     send channel $ SocketBlocksPageUpdated result
 
+txUpdatedHandler :: forall eff. ActionChannel -> Json
+    -> Eff (channel :: CHANNEL | eff) Unit
+txUpdatedHandler channel json =
+    let result = decodeResult' json in
+    send channel $ SocketTxUpdated result
+
 txsUpdatedHandler :: forall eff. ActionChannel -> Json
     -> Eff (channel :: CHANNEL | eff) Unit
 txsUpdatedHandler channel json =
