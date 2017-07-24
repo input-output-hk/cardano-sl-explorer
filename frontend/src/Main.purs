@@ -12,7 +12,7 @@ import DOM.HTML.Types (htmlDocumentToEventTarget)
 import DOM.HTML.Window (document, location)
 import Data.Lens ((^.), set)
 import Data.Maybe (Maybe(..), fromMaybe)
-import Explorer.Api.Socket (addressTxsUpdatedEventHandler, blocksPageUpdatedEventHandler, callYouEventHandler, mkSocketHost, connectEvent, closeEvent, connectHandler, closeHandler, toEvent, txsUpdatedHandler) as Ex
+import Explorer.Api.Socket (addressTxsUpdatedEventHandler, blocksPageUpdatedEventHandler, callYouEventHandler, mkSocketHost, connectEvent, closeEvent, connectHandler, closeHandler, toEvent, txUpdatedHandler, txsUpdatedHandler) as Ex
 import Explorer.I18n.Lang (Language(..), detectLocale)
 import Explorer.Lenses.State (connection, testnet, lang, socket, syncAction)
 import Explorer.Routes (match)
@@ -42,6 +42,7 @@ socketConfig appConfig actionChannel = do
     socket' <- connect socketHost
     _ <- on socket' Ex.connectEvent $ Ex.connectHandler actionChannel
     _ <- on socket' Ex.closeEvent $ Ex.closeHandler actionChannel
+    _ <- on socket' (Ex.toEvent TxUpdated) $ Ex.txUpdatedHandler actionChannel
     _ <- on socket' (Ex.toEvent TxsUpdated) $ Ex.txsUpdatedHandler actionChannel
     _ <- on socket' (Ex.toEvent BlocksLastPageUpdated) $ Ex.blocksPageUpdatedEventHandler actionChannel
     _ <- on socket' (Ex.toEvent AddrUpdated) $ Ex.addressTxsUpdatedEventHandler actionChannel
