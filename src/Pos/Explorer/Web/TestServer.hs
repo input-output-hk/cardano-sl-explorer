@@ -210,8 +210,12 @@ testGenesisPagesTotal
     :: Maybe Word
     -> Maybe Bool
     -> Handler (Either ExplorerError Integer)
-testGenesisPagesTotal _ mRedeemed =
-    pure . pure . toInteger . length $ maybeFilterRedeemed mkCGenesisAddressInfoList mRedeemed
+testGenesisPagesTotal mPageSize mRedeemed =
+    pure . pure . toInteger $ (totalAddresses + pageSize - 1) `div` pageSize
+    where
+      totalAddresses = length $ maybeFilterRedeemed mkCGenesisAddressInfoList mRedeemed
+      pageSize = fromIntegral $ fromMaybe 1 mPageSize
+
 testGenesisAddressInfo
     :: Maybe Word
     -> Maybe Word
