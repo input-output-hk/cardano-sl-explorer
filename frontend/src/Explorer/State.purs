@@ -10,7 +10,7 @@ import Data.Tuple (Tuple(..))
 import Explorer.Api.Types (SocketSubscription, SocketSubscriptionData)
 import Explorer.I18n.Lang (Language(..))
 import Explorer.Routes (Route(..))
-import Explorer.Types.State (DashboardAPICode(..), PageNumber(..), Search(..), SearchEpochSlotQuery, SocketSubscriptionItem(..), State)
+import Explorer.Types.State (DashboardAPICode(..), GenesisBlockPagination(..), PageNumber(..), Search(..), SearchEpochSlotQuery, SocketSubscriptionItem(..), State)
 import Explorer.Util.Config (SyncAction(..))
 import Explorer.Util.Factory (mkCAddress)
 import Network.RemoteData (RemoteData(..))
@@ -58,7 +58,8 @@ initialState =
             , blsViewPaginationEditable: false
             }
         , genesisBlockViewState:
-            { gblAddressInfosPagination: PageNumber minPagination
+            { gblAddressInfosPagination: GBPaginateAllAddresses
+            , gblAddressInfosPageNumber: PageNumber minPagination
             , gblMaxAddressInfosPagination: NotAsked
             , gblAddressInfosPaginationEditable: false
             , gblLoadingAddressInfosPagination: false

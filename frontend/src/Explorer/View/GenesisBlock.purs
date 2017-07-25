@@ -15,7 +15,7 @@ import Data.Lens ((^.))
 import Data.Maybe (Maybe(..))
 import Explorer.I18n.Lang (Language, translate)
 import Explorer.I18n.Lenses (cGenesis, cAddress, cAddresses, cOf, common, cLoading, cNo, cSummary, cYes, gblAddressesError, gblAddressesNotFound, gblAddressRedeemAmount, gblAddressIsRedeemed, gblNotFound, gblNumberRedeemedAddresses, gblNumberAddressesToRedeem, gblNumberRedeemedAmount, gblNumberAmountToRedeem, genesisBlock) as I18nL
-import Explorer.Lenses.State (currentCGenesisAddressInfos, currentCGenesisSummary, gblLoadingAddressInfosPagination, gblAddressInfosPagination, gblAddressInfosPaginationEditable, gblMaxAddressInfosPagination, genesisBlockViewState, lang, viewStates)
+import Explorer.Lenses.State (currentCGenesisAddressInfos, currentCGenesisSummary, gblLoadingAddressInfosPagination, gblAddressInfosPageNumber, gblAddressInfosPaginationEditable, gblMaxAddressInfosPagination, genesisBlockViewState, lang, viewStates)
 import Explorer.Routes (Route(..), toUrl)
 import Explorer.State (minPagination)
 import Explorer.Types.Actions (Action(..))
@@ -192,7 +192,7 @@ addressInfosView infos state =
             S.div
                 ! S.className "address-infos__footer"
                 $  paginationView  { label: translate (I18nL.common <<< I18nL.cOf) $ lang'
-                                    , currentPage: state ^. (viewStates <<< genesisBlockViewState <<< gblAddressInfosPagination)
+                                    , currentPage: state ^. (viewStates <<< genesisBlockViewState <<< gblAddressInfosPageNumber)
                                     , minPage: PageNumber minPagination
                                     , maxPage: withDefault
                                                   (PageNumber minPagination)
