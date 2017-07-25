@@ -94,6 +94,7 @@ type GenesisPagesTotal = API
     :> "pages"
     :> "total"
     :> QueryParam "pageSize" Word
+    :> QueryParam "redeemed" Bool
     :> Get '[JSON] (Either ExplorerError Integer)
 
 type GenesisAddressInfo = API

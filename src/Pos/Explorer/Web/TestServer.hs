@@ -208,8 +208,9 @@ testGenesisSummary = pure . pure $ CGenesisSummary
 
 testGenesisPagesTotal
     :: Maybe Word
+    -> Maybe Bool
     -> Handler (Either ExplorerError Integer)
-testGenesisPagesTotal _ = pure $ pure 2
+testGenesisPagesTotal _ redeemed = pure $ pure $ if isJust redeemed then 1 else 2
 
 testGenesisAddressInfo
     :: Maybe Word

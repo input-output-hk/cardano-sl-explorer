@@ -153,8 +153,8 @@ explorerHandlers _sendActions =
     tryEpochSlotSearch epoch maybeSlot =
         catchExplorerError $ epochSlotSearch epoch maybeSlot
 
-    getGenesisPagesTotalDefault size =
-        catchExplorerError $ getGenesisPagesTotal (defaultPageSize size)
+    getGenesisPagesTotalDefault size redeemed =
+        catchExplorerError $ getGenesisPagesTotal (defaultPageSize size) redeemed
 
     getGenesisAddressInfoDefault page size redeemed =
         catchExplorerError $ getGenesisAddressInfo page (defaultPageSize size) redeemed
@@ -547,6 +547,40 @@ getGenesisSummary = do
                 amountRemaining' = amountRemaining `unsafeAddCoin` currentBalance
             in pure (len', numRedeemed', amountRedeemed', amountRemaining')
 
+filterRedeemed :: Maybe Bool -> [CGenesisAddressInfo] -> [CGenesisAddressInfo]
+filterRedeemed redeemed addressesInfo =
+  case redeemed of
+      Nothing    -> addressesInfo
+      Just False -> filter (not . cgaiIsRedeemed) addressesInfo
+      Just True  -> filter cgaiIsRedeemed addressesInfo
+
+toGenesisAddressInfo :: ExplorerMode m => (Address, Coin) -> m CGenesisAddressInfo
+toGenesisAddressInfo (address, coin) = do
+    cgaiIsRedeemed <- isAddressRedeemed address coin
+    -- Commenting out RSCoin address until it can actually be displayed.
+    -- See comment in src/Pos/Explorer/Web/ClientTypes.hs for more information.
+    pure CGenesisAddressInfo
+        { cgaiCardanoAddress = toCAddress address
+        -- , cgaiRSCoinAddress  = toCAddress address
+        , cgaiGenesisAmount  = mkCCoin coin
+        , ..
+        }
+
+getGenesisPagesTotal
+    :: ExplorerMode m
+    => Word
+    -> Maybe Bool
+    -> m Integer
+getGenesisPagesTotal (fromIntegral -> pageSize) redeemed = do
+    redeemAddressCoinPairs <- getRedeemAddressCoinPairs
+    totalAddresses <- case redeemed of
+        Nothing -> pure $ length redeemAddressCoinPairs
+        Just redeemedOnly -> do
+            cAddressesInfo <- mapM toGenesisAddressInfo redeemAddressCoinPairs
+            pure $ length $
+                filter ((redeemedOnly ==) . cgaiIsRedeemed) cAddressesInfo
+    pure $ fromIntegral $ (totalAddresses + pageSize - 1) `div` pageSize
+
 getGenesisAddressInfo
     :: (ExplorerMode m)
     => Maybe Word  -- ^ pageNumber
@@ -558,34 +592,7 @@ getGenesisAddressInfo (fmap fromIntegral -> mPageNumber) (fromIntegral -> pageSi
     let pageNumber    = fromMaybe 1 mPageNumber
         skipItems     = (pageNumber - 1) * pageSize
         requestedPage = take pageSize $ drop skipItems redeemAddressCoinPairs
-    maybeFilterRedeemed <$> mapM toGenesisAddressInfo requestedPage
-  where
-    maybeFilterRedeemed :: [CGenesisAddressInfo] -> [CGenesisAddressInfo]
-    maybeFilterRedeemed addressesInfo =
-        case redeemed of
-            Nothing    -> addressesInfo
-            Just False -> filter (not . cgaiIsRedeemed) addressesInfo
-            Just True  -> filter cgaiIsRedeemed addressesInfo
-
-    toGenesisAddressInfo :: ExplorerMode m => (Address, Coin) -> m CGenesisAddressInfo
-    toGenesisAddressInfo (address, coin) = do
-        cgaiIsRedeemed <- isAddressRedeemed address coin
-        -- Commenting out RSCoin address until it can actually be displayed.
-        -- See comment in src/Pos/Explorer/Web/ClientTypes.hs for more information.
-        pure CGenesisAddressInfo
-            { cgaiCardanoAddress = toCAddress address
-            -- , cgaiRSCoinAddress  = toCAddress address
-            , cgaiGenesisAmount  = mkCCoin coin
-            , ..
-            }
-
-getGenesisPagesTotal
-    :: ExplorerMode m
-    => Word
-    -> m Integer
-getGenesisPagesTotal (fromIntegral -> pageSize) = do
-    redeemAddressCoinPairs <- getRedeemAddressCoinPairs
-    pure $ fromIntegral $ (length redeemAddressCoinPairs + pageSize - 1) `div` pageSize
+    filterRedeemed redeemed <$> mapM toGenesisAddressInfo requestedPage
 
 -- | Search the blocks by epoch and slot. Slot is optional.
 epochSlotSearch
