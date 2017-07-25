@@ -154,6 +154,9 @@ type Block =
 type GenesisBlock =
     { gblNotFound :: String
     , gblNumberRedeemedAddresses :: String
+    , gblNumberAddressesToRedeem :: String
+    , gblNumberRedeemedAmount :: String
+    , gblNumberAmountToRedeem :: String
     , gblAddressesNotFound :: String
     , gblAddressesError :: String
     , gblAddressRedeemAmount :: String

@@ -14,7 +14,7 @@ import Data.Foldable (for_)
 import Data.Lens ((^.))
 import Data.Maybe (Maybe(..))
 import Explorer.I18n.Lang (Language, translate)
-import Explorer.I18n.Lenses (cGenesis, cAddress, cAddresses, cOf, common, cLoading, cNo, cSummary, cYes, gblAddressesError, gblAddressesNotFound, gblAddressRedeemAmount, gblAddressIsRedeemed, gblNotFound, gblNumberRedeemedAddresses, genesisBlock) as I18nL
+import Explorer.I18n.Lenses (cGenesis, cAddress, cAddresses, cOf, common, cLoading, cNo, cSummary, cYes, gblAddressesError, gblAddressesNotFound, gblAddressRedeemAmount, gblAddressIsRedeemed, gblNotFound, gblNumberRedeemedAddresses, gblNumberAddressesToRedeem, gblNumberRedeemedAmount, gblNumberAmountToRedeem, genesisBlock) as I18nL
 import Explorer.Lenses.State (currentCGenesisAddressInfos, currentCGenesisSummary, gblLoadingAddressInfosPagination, gblAddressInfosPagination, gblAddressInfosPaginationEditable, gblMaxAddressInfosPagination, genesisBlockViewState, lang, viewStates)
 import Explorer.Routes (Route(..), toUrl)
 import Explorer.State (minPagination)
@@ -24,7 +24,7 @@ import Explorer.Util.String (formatADA)
 import Explorer.View.Common (currencyCSSClass, paginationView)
 import Network.RemoteData (RemoteData(..), withDefault)
 import Pos.Explorer.Web.ClientTypes (CGenesisAddressInfo(..), CGenesisSummary(..))
-import Pos.Explorer.Web.Lenses.ClientTypes (_CAddress, cgaiCardanoAddress, cgaiGenesisAmount, cgaiIsRedeemed, cgsNumRedeemed)
+import Pos.Explorer.Web.Lenses.ClientTypes (_CAddress, cgaiCardanoAddress, cgaiGenesisAmount, cgaiIsRedeemed, cgsAmountRedeemed, cgsAmountRemaining, cgsNumRedeemed, cgsNumRemaining)
 import Pux.DOM.Events (onClick) as P
 import Pux.DOM.HTML (HTML) as P
 import Pux.DOM.HTML.Attributes (key) as P
@@ -46,7 +46,7 @@ genesisBlockView state =
                         NotAsked  -> emptyView ""
                         Loading   -> emptyView $ translate (I18nL.common <<< I18nL.cLoading) lang'
                         Failure _ -> emptyView $ translate (I18nL.genesisBlock <<< I18nL.gblNotFound) lang'
-                        Success summary -> summaryView summary lang'
+                        Success summary -> summaryView summary state
 
         S.div ! S.className "explorer-genesis__wrapper" $ do
             S.div ! S.className "explorer-genesis__container" $ do
@@ -68,16 +68,35 @@ type SummaryRowItem =
     { id :: String
     , label :: String
     , amount :: String
+    , mCurrency :: Maybe CCurrency
     }
 
 type SummaryItems = Array SummaryRowItem
 
-mkSummaryItems :: Language -> CGenesisSummary -> SummaryItems
-mkSummaryItems lang (CGenesisSummary summary) =
+mkSummaryItems :: State -> CGenesisSummary -> SummaryItems
+mkSummaryItems state (CGenesisSummary summary) =
+    let lang' = state ^. lang in
     [ { id: "0"
-      , label: translate (I18nL.genesisBlock <<< I18nL.gblNumberRedeemedAddresses) lang
+      , label: translate (I18nL.genesisBlock <<< I18nL.gblNumberRedeemedAddresses) lang'
       , amount: show $ summary ^. cgsNumRedeemed
+      , mCurrency: Nothing
       }
+    , { id: "2"
+      , label: translate (I18nL.genesisBlock <<< I18nL.gblNumberAddressesToRedeem) lang'
+      , amount: show $ summary ^. cgsNumRemaining
+      , mCurrency: Nothing
+      }
+    , { id: "3"
+      , label: translate (I18nL.genesisBlock <<< I18nL.gblNumberRedeemedAmount) lang'
+      , amount: formatADA (summary ^. cgsAmountRedeemed) lang'
+      , mCurrency: Just ADA
+      }
+    , { id: "4"
+      , label: translate (I18nL.genesisBlock <<< I18nL.gblNumberAmountToRedeem) lang'
+      , amount: formatADA (summary ^. cgsAmountRemaining) lang'
+      , mCurrency: Just ADA
+      }
+
     ]
 
 summaryRow :: SummaryRowItem -> P.HTML Action
@@ -89,15 +108,16 @@ summaryRow item =
             S.div ! S.className "column column__label"
                   $ S.text item.label
             S.div ! S.className "column column__amount"
-                  $ S.text item.amount
+                  $ S.span  ! S.className (currencyCSSClass item.mCurrency)
+                            $ S.text item.amount
 
-summaryView :: CGenesisSummary -> Language -> P.HTML Action
-summaryView summary lang =
+summaryView :: CGenesisSummary -> State -> P.HTML Action
+summaryView summary state =
     S.div ! S.className "summary-wrapper" $ do
         S.div ! S.className "summary-container" $ do
             S.h3  ! S.className "subheadline"
-                  $ S.text (translate (I18nL.common <<< I18nL.cSummary) lang)
-            S.div $ for_ (mkSummaryItems lang summary) summaryRow
+                  $ S.text (translate (I18nL.common <<< I18nL.cSummary) $ state ^. lang)
+            S.div $ for_ (mkSummaryItems state summary) summaryRow
 
 type AddressInfosHeaderProps =
     { label :: String

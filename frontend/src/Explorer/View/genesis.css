@@ -86,6 +86,12 @@
           lost-column: 9/12;
         }
 
+        >.ada {
+          padding-right: 10px;
+          background-repeat: no-repeat;
+          background-position: right center;
+          background-size: 8px 7px;
+        }
       }
     }
 
