@@ -1,4 +1,3 @@
-
 -- | Detail page of a `genesis block` https://cardanodocs.com/technical/blocks/#genesis-block
 
 module Explorer.View.GenesisBlock

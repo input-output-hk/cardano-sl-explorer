@@ -90,7 +90,7 @@ sampleAddressSummary = CAddressSummary
     , caTxNum      = 0
     , caBalance    = mkCCoin $ mkCoin 0
     , caTxList     = []
-    , caIsRedeemed = Nothing
+    , caIsRedeemed = Just True
     }
 ----------------------------------------------------------------
 -- Test handlers

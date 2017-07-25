@@ -90,25 +90,27 @@ addressDetailRowItems (CAddressSummary address) lang =
       , label: translate (I18nL.common <<< I18nL.cAddress) lang
       , value: address ^. (caAddress <<< _CAddress)
       , mCurrency: Nothing
-    }
+      }
     , { id: "1"
       , label: translate (I18nL.common <<< I18nL.cTransactions) lang
       , value: show $ address ^. caTxNum
       , mCurrency: Nothing
-    }
+      }
     , { id: "2"
       ,label: translate (I18nL.address <<< I18nL.addFinalBalance) lang
       , value: formatADA (address ^. caBalance) lang
       , mCurrency: Just ADA
       }
-    , { id: "3"
-      , label: translate (I18nL.common <<< I18nL.cAddressIsRedeemed) lang
-      , value:  if fromMaybe false (address ^. caIsRedeemed)
-                    then translate (I18nL.common <<< I18nL.cYes) lang
-                    else translate (I18nL.common <<< I18nL.cNo) lang
-      , mCurrency: Nothing
-      }
-    ]
+    ] <> if isJust (address ^. caIsRedeemed)
+            -- ^ add `isRedeemed` info if available only
+              then  [ { id: "3"
+                    , label: translate (I18nL.common <<< I18nL.cAddressIsRedeemed) lang
+                    , value:  if fromMaybe false (address ^. caIsRedeemed)
+                                  then translate (I18nL.common <<< I18nL.cYes) lang
+                                  else translate (I18nL.common <<< I18nL.cNo) lang
+                    , mCurrency: Nothing
+                    }]
+              else  []
 
 addressDetailRow :: SummaryRowItem -> P.HTML Action
 addressDetailRow item =
