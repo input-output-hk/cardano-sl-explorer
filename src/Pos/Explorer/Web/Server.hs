@@ -156,8 +156,8 @@ explorerHandlers _sendActions =
     getGenesisPagesTotalDefault size =
         catchExplorerError $ getGenesisPagesTotal (defaultPageSize size)
 
-    getGenesisAddressInfoDefault page size =
-        catchExplorerError $ getGenesisAddressInfo page (defaultPageSize size)
+    getGenesisAddressInfoDefault page size redeemed =
+        catchExplorerError $ getGenesisAddressInfo page (defaultPageSize size) redeemed
 
     defaultPageSize size = (fromIntegral $ fromMaybe 10 size)
     defaultLimit limit   = (fromIntegral $ fromMaybe 10 limit)
@@ -551,14 +551,22 @@ getGenesisAddressInfo
     :: (ExplorerMode m)
     => Maybe Word  -- ^ pageNumber
     -> Word        -- ^ pageSize
+    -> Maybe Bool  -- ^ redeemed
     -> m [CGenesisAddressInfo]
-getGenesisAddressInfo (fmap fromIntegral -> mPage) (fromIntegral -> pageSize) = do
+getGenesisAddressInfo (fmap fromIntegral -> mPageNumber) (fromIntegral -> pageSize) redeemed = do
     redeemAddressCoinPairs <- getRedeemAddressCoinPairs
-    let pageNumber    = fromMaybe 1 mPage
+    let pageNumber    = fromMaybe 1 mPageNumber
         skipItems     = (pageNumber - 1) * pageSize
         requestedPage = take pageSize $ drop skipItems redeemAddressCoinPairs
-    mapM toGenesisAddressInfo requestedPage
+    maybeFilterRedeemed <$> mapM toGenesisAddressInfo requestedPage
   where
+    maybeFilterRedeemed :: [CGenesisAddressInfo] -> [CGenesisAddressInfo]
+    maybeFilterRedeemed addressesInfo =
+        case redeemed of
+            Nothing    -> addressesInfo
+            Just False -> filter (not . cgaiIsRedeemed) addressesInfo
+            Just True  -> filter cgaiIsRedeemed addressesInfo
+
     toGenesisAddressInfo :: ExplorerMode m => (Address, Coin) -> m CGenesisAddressInfo
     toGenesisAddressInfo (address, coin) = do
         cgaiIsRedeemed <- isAddressRedeemed address coin

@@ -101,6 +101,7 @@ type GenesisAddressInfo = API
     :> "address"
     :> QueryParam "page" Word
     :> QueryParam "pageSize" Word
+    :> QueryParam "redeemed" Bool
     :> Get '[JSON] (Either ExplorerError [CGenesisAddressInfo])
 
 -- | Servant API which provides access to explorer

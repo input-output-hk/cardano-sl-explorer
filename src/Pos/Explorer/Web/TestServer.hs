@@ -214,8 +214,9 @@ testGenesisPagesTotal _ = pure $ pure 2
 testGenesisAddressInfo
     :: Maybe Word
     -> Maybe Word
+    -> Maybe Bool
     -> Handler (Either ExplorerError [CGenesisAddressInfo])
-testGenesisAddressInfo _ _ = pure . pure $ [
+testGenesisAddressInfo _ _ redeemed = pure . pure $ maybeFilterRedeemed [
     -- Commenting out RSCoin addresses until they can actually be displayed.
     -- See comment in src/Pos/Explorer/Web/ClientTypes.hs for more information.
     CGenesisAddressInfo
@@ -230,3 +231,9 @@ testGenesisAddressInfo _ _ = pure . pure $ [
     , cgaiGenesisAmount  = mkCCoin $ mkCoin 2225295000000
     , cgaiIsRedeemed     = True
     }]
+  where
+    maybeFilterRedeemed addressesInfo =
+        case redeemed of
+            Nothing    -> addressesInfo
+            Just False -> filter (not . cgaiIsRedeemed) addressesInfo
+            Just True  -> filter cgaiIsRedeemed addressesInfo
