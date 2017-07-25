@@ -210,31 +210,61 @@ testGenesisPagesTotal
     :: Maybe Word
     -> Maybe Bool
     -> Handler (Either ExplorerError Integer)
-testGenesisPagesTotal _ redeemed = pure $ pure $ if isJust redeemed then 1 else 2
-
+testGenesisPagesTotal _ mRedeemed =
+    pure . pure . toInteger . length $ maybeFilterRedeemed mkCGenesisAddressInfoList mRedeemed
 testGenesisAddressInfo
     :: Maybe Word
     -> Maybe Word
     -> Maybe Bool
     -> Handler (Either ExplorerError [CGenesisAddressInfo])
-testGenesisAddressInfo _ _ redeemed = pure . pure $ maybeFilterRedeemed [
+testGenesisAddressInfo _ _ mRedeemed =
+    pure . pure $ maybeFilterRedeemed mkCGenesisAddressInfoList mRedeemed
+
+
+----------------------------------------------------------------
+-- misc. helpers
+----------------------------------------------------------------
+maybeFilterRedeemed :: [CGenesisAddressInfo] -> Maybe Bool -> [CGenesisAddressInfo]
+maybeFilterRedeemed addressesInfo mRedeemed =
+    case mRedeemed of
+        Nothing    -> addressesInfo
+        Just False -> filter (not . cgaiIsRedeemed) addressesInfo
+        Just True  -> filter cgaiIsRedeemed addressesInfo
+
+----------------------------------------------------------------
+-- mock factories
+----------------------------------------------------------------
+
+mkCGenesisAddressInfo
+    :: Text       -- Cardano address hash
+    -- -> Text      -- RSCoin address hash
+    -> Word64     -- amount value
+    -> Bool       -- isRedeemed
+    -> CGenesisAddressInfo
+mkCGenesisAddressInfo
+    cardanoAddress
+    -- rscoinAddress
+    amount
+    isRedeemed =
     -- Commenting out RSCoin addresses until they can actually be displayed.
     -- See comment in src/Pos/Explorer/Web/ClientTypes.hs for more information.
     CGenesisAddressInfo
-    { cgaiCardanoAddress = CAddress "3meLwrCDE4C7RofEdkZbUuR75ep3EcTmZv9ebcdjfMtv5H"
-    -- , cgaiRSCoinAddress  = CAddress "JwvXUQ31cvrFpqqtx6fB-NOp0Q-eGQs74yXMGa-72Ak="
-    , cgaiGenesisAmount  = mkCCoin $ mkCoin 15000000
-    , cgaiIsRedeemed     = False
-    },
-    CGenesisAddressInfo
-    { cgaiCardanoAddress = CAddress "3mfaPhQ8ewtmyi7tvcxo1TXhGh5piePbjkqgz49Jo2wpV9"
-    -- , cgaiRSCoinAddress  = CAddress "l-47iKlYk1xlyCaxoPiCHNhPQ9PTsHWnXKl6Nk9dwac="
-    , cgaiGenesisAmount  = mkCCoin $ mkCoin 2225295000000
-    , cgaiIsRedeemed     = True
-    }]
-  where
-    maybeFilterRedeemed addressesInfo =
-        case redeemed of
-            Nothing    -> addressesInfo
-            Just False -> filter (not . cgaiIsRedeemed) addressesInfo
-            Just True  -> filter cgaiIsRedeemed addressesInfo
+    { cgaiCardanoAddress = CAddress cardanoAddress
+    -- , cgaiRSCoinAddress  = CAddress rscoinAddress
+    , cgaiGenesisAmount  = mkCCoin $ mkCoin amount
+    , cgaiIsRedeemed     = isRedeemed
+    }
+
+mkCGenesisAddressInfoList :: [CGenesisAddressInfo]
+mkCGenesisAddressInfoList =
+  [ mkCGenesisAddressInfo
+        "3meLwrCDE4C7RofEdkZbUuR75ep3EcTmZv9ebcdjfMtv5H"
+        -- "JwvXUQ31cvrFpqqtx6fB-NOp0Q-eGQs74yXMGa-72Ak="
+        15000000
+        False
+  , mkCGenesisAddressInfo
+        "3mfaPhQ8ewtmyi7tvcxo1TXhGh5piePbjkqgz49Jo2wpV9"
+        -- "l-47iKlYk1xlyCaxoPiCHNhPQ9PTsHWnXKl6Nk9dwac="
+        2225295000000
+        True
+  ]
