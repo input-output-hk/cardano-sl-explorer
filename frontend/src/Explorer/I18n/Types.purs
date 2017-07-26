@@ -52,6 +52,7 @@ type Common =
     , cUnknown :: String
     , cTotalOutput :: String
     , cOf :: String
+    , cAll :: String
     , cNotAvailable :: String
     , cLoading :: String
     , cBack2Dashboard :: String
@@ -161,6 +162,7 @@ type GenesisBlock =
     , gblAddressesError :: String
     , gblAddressRedeemAmount :: String
     , gblAddressIsRedeemed :: String
+    , gblAddressIsNotRedeemed :: String
     }
 
 -- translations of footer

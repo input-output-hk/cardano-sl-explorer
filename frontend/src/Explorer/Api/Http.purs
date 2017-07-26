@@ -89,21 +89,14 @@ searchEpoch epoch mSlot = get $ "search/epoch/" <> show epochIndex <> slotQuery 
 fetchGenesisSummary :: forall eff. Aff (ajax::AJAX | eff) CGenesisSummary
 fetchGenesisSummary = get "genesis/summary/"
 
-fetchGenesisAddressInfo :: forall eff. GenesisBlockPagination -> PageNumber -> PageSize -> Aff (ajax::AJAX | eff) CGenesisAddressInfos
+fetchGenesisAddressInfo :: forall eff. GenesisBlockPagination -> PageNumber -> PageSize -> Aff (ajax::AJAX | eff) (Tuple Int CGenesisAddressInfos)
 fetchGenesisAddressInfo pagination (PageNumber pNumber) (PageSize pSize) =
-    get $ "genesis/address/?"
+    get $ "genesis/address/pages/?"
               <> "page=" <> show pNumber
               <> "&pageSize=" <> show pSize
               <> redeemedQuery pagination
-
-fetchGenesisAddressInfoTotalPages :: forall eff. GenesisBlockPagination -> PageSize -> Aff (ajax::AJAX | eff) Int
-fetchGenesisAddressInfoTotalPages pagination (PageSize pSize)=
-    get $ "genesis/address/pages/total?pageSize="
-              <> show pSize
-              <> redeemedQuery pagination
-
--- helper
-redeemedQuery :: GenesisBlockPagination -> String
-redeemedQuery GBPaginateAllAddresses = ""
-redeemedQuery GBPaginateRedeemedAddresses = "&redeemed=true"
-redeemedQuery GBPaginateNonRedeemedAddresses = "&redeemed=false"
+    where
+        redeemedQuery :: GenesisBlockPagination -> String
+        redeemedQuery GBPaginateAllAddresses = ""
+        redeemedQuery GBPaginateRedeemedAddresses = "&redeemed=true"
+        redeemedQuery GBPaginateNonRedeemedAddresses = "&redeemed=false"

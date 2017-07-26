@@ -39,6 +39,7 @@ translation =
         , cUnknown: "Unbekannt"
         , cTotalOutput: "Gesamtausgabe"
         , cOf: "von"
+        , cAll: "Alle"
         , cNotAvailable: "nicht verfügbar"
         , cLoading: "Lade..."
         , cBack2Dashboard: "Zurück zum Dashboard"
@@ -127,6 +128,7 @@ translation =
         , gblAddressesError: "Error beim Laden der Addressen"
         , gblAddressRedeemAmount: "Einzulösender Wert"
         , gblAddressIsRedeemed: "eingelöst"
+        , gblAddressIsNotRedeemed: "nicht eingelöst"
         }
     , footer:
         { fooResources: "Ressourcen"

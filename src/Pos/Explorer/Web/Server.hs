@@ -125,19 +125,19 @@ explorerHandlers _sendActions =
     :<|>
       apiGenesisPagesTotal
     :<|>
-      apiGenesisAddressInfo
+      apiGenesisAddressInfoPage
   where
-    apiBlocksPages        = getBlocksPagesDefault
-    apiBlocksPagesTotal   = getBlocksPagesTotalDefault
-    apiBlocksSummary      = catchExplorerError . getBlockSummary
-    apiBlocksTxs          = getBlockTxsDefault
-    apiTxsLast            = catchExplorerError getLastTxs
-    apiTxsSummary         = catchExplorerError . getTxSummary
-    apiAddressSummary     = catchExplorerError . getAddressSummary
-    apiEpochSlotSearch    = tryEpochSlotSearch
-    apiGenesisSummary     = catchExplorerError getGenesisSummary
-    apiGenesisPagesTotal  = getGenesisPagesTotalDefault
-    apiGenesisAddressInfo = getGenesisAddressInfoDefault
+    apiBlocksPages              = getBlocksPagesDefault
+    apiBlocksPagesTotal         = getBlocksPagesTotalDefault
+    apiBlocksSummary            = catchExplorerError . getBlockSummary
+    apiBlocksTxs                = getBlockTxsDefault
+    apiTxsLast                  = catchExplorerError getLastTxs
+    apiTxsSummary               = catchExplorerError . getTxSummary
+    apiAddressSummary           = catchExplorerError . getAddressSummary
+    apiEpochSlotSearch          = tryEpochSlotSearch
+    apiGenesisSummary           = catchExplorerError getGenesisSummary
+    apiGenesisPagesTotal        = getGenesisPagesTotalDefault
+    apiGenesisAddressInfoPage  = getGenesisAddressInfoPageDefault
 
     catchExplorerError    = try
 
@@ -156,8 +156,8 @@ explorerHandlers _sendActions =
     getGenesisPagesTotalDefault size redeemed =
         catchExplorerError $ getGenesisPagesTotal (defaultPageSize size) redeemed
 
-    getGenesisAddressInfoDefault page size redeemed =
-        catchExplorerError $ getGenesisAddressInfo page (defaultPageSize size) redeemed
+    getGenesisAddressInfoPageDefault page size redeemed =
+        catchExplorerError $ getGenesisAddressInfoPage page (defaultPageSize size) redeemed
 
     defaultPageSize size = (fromIntegral $ fromMaybe 10 size)
     defaultLimit limit   = (fromIntegral $ fromMaybe 10 limit)
@@ -581,18 +581,28 @@ getGenesisPagesTotal (fromIntegral -> pageSize) redeemed = do
                 filter ((redeemedOnly ==) . cgaiIsRedeemed) cAddressesInfo
     pure $ fromIntegral $ (totalAddresses + pageSize - 1) `div` pageSize
 
-getGenesisAddressInfo
+getGenesisAddressInfoPage
     :: (ExplorerMode m)
     => Maybe Word  -- ^ pageNumber
     -> Word        -- ^ pageSize
     -> Maybe Bool  -- ^ redeemed
-    -> m [CGenesisAddressInfo]
-getGenesisAddressInfo (fmap fromIntegral -> mPageNumber) (fromIntegral -> pageSize) redeemed = do
+    -> m (Integer, [CGenesisAddressInfo])
+getGenesisAddressInfoPage (fmap fromIntegral -> mPageNumber) pageSize redeemed = do
     redeemAddressCoinPairs <- getRedeemAddressCoinPairs
+    total <- getGenesisPagesTotal pageSize redeemed
     let pageNumber    = fromMaybe 1 mPageNumber
-        skipItems     = (pageNumber - 1) * pageSize
-        requestedPage = take pageSize $ drop skipItems redeemAddressCoinPairs
-    filterRedeemed redeemed <$> mapM toGenesisAddressInfo requestedPage
+        total'        = fromIntegral total
+        pageSize'     = fromIntegral pageSize
+        pageSize'' -- make sure that we have a valid pageSize
+            | pageSize' > total'  = total'
+            | pageSize' < 0       = 0
+            | otherwise           = pageSize'
+        skipItems     = (pageNumber - 1) * pageSize''
+        requestedPage = take pageSize'' $ drop skipItems redeemAddressCoinPairs
+
+    adressInfos <- filterRedeemed redeemed <$> mapM toGenesisAddressInfo requestedPage
+
+    pure (total, adressInfos)
 
 -- | Search the blocks by epoch and slot. Slot is optional.
 epochSlotSearch

@@ -154,6 +154,31 @@
       font-weight: bold;
     }
 
+    &__filter-nav {
+      box: horizontal center;
+      padding: 5px 0;
+
+      &--item {
+        box: center;
+        margin: 0 5px;
+        padding: 10px 5px;
+
+        font-family: var(--fontFamily0-Regular);
+        color: var(--color8);
+        font-size: 10px;
+        font-weight: normal;
+
+        white-space: nowrap;
+
+        button: standard-button;
+        button-color: var(--color8) var(--color5) var(--color5);
+
+        &.selected {
+          color: color(var(--color5));
+        }
+      }
+    }
+
 
     &__body--wrapper {
       position: relative;

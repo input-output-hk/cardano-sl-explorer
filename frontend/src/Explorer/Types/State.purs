@@ -137,10 +137,13 @@ data GenesisBlockPagination
     | GBPaginateRedeemedAddresses
     | GBPaginateNonRedeemedAddresses
 
+derive instance gGenesisBlockPagination :: Generic GenesisBlockPagination
+derive instance eqGenesisBlockPagination :: Eq GenesisBlockPagination
+
 type GenesisBlockViewState =
     { gblAddressInfosPagination :: GenesisBlockPagination
     , gblAddressInfosPageNumber :: PageNumber
-    , gblMaxAddressInfosPagination :: RemoteData Error PageNumber
+    , gblAddressInfosMaxPageNumber :: PageNumber
     , gblAddressInfosPaginationEditable :: Boolean
     , gblLoadingAddressInfosPagination :: Boolean
     }

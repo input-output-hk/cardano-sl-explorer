@@ -97,13 +97,14 @@ type GenesisPagesTotal = API
     :> QueryParam "redeemed" Bool
     :> Get '[JSON] (Either ExplorerError Integer)
 
-type GenesisAddressInfo = API
+type GenesisAddressInfoPages = API
     :> "genesis"
     :> "address"
+    :> "pages"
     :> QueryParam "page" Word
     :> QueryParam "pageSize" Word
     :> QueryParam "redeemed" Bool
-    :> Get '[JSON] (Either ExplorerError [CGenesisAddressInfo])
+    :> Get '[JSON] (Either ExplorerError (Integer, [CGenesisAddressInfo]))
 
 -- | Servant API which provides access to explorer
 type ExplorerApi =
@@ -117,7 +118,7 @@ type ExplorerApi =
     :<|> EpochSlotSearch
     :<|> GenesisSummary
     :<|> GenesisPagesTotal
-    :<|> GenesisAddressInfo
+    :<|> GenesisAddressInfoPages
 
 -- | Helper Proxy
 explorerApi :: Proxy ExplorerApi

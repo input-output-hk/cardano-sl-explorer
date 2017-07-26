@@ -60,7 +60,7 @@ initialState =
         , genesisBlockViewState:
             { gblAddressInfosPagination: GBPaginateAllAddresses
             , gblAddressInfosPageNumber: PageNumber minPagination
-            , gblMaxAddressInfosPagination: NotAsked
+            , gblAddressInfosMaxPageNumber: PageNumber minPagination
             , gblAddressInfosPaginationEditable: false
             , gblLoadingAddressInfosPagination: false
             }
