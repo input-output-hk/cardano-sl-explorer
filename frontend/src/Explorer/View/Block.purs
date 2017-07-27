@@ -73,7 +73,7 @@ blockView state =
 --  summary
 
 type SummaryRowItem =
-    { id :: String
+    { key :: String
     , label :: String
     , amount :: String
     , mCurrency :: Maybe CCurrency
@@ -83,30 +83,30 @@ type SummaryItems = Array SummaryRowItem
 
 mkSummaryItems :: Language -> CBlockEntry -> SummaryItems
 mkSummaryItems lang (CBlockEntry entry) =
-    [ { id: "0"
+    [ { key: "0"
       , label: translate (I18nL.common <<< I18nL.cTransactions) lang
       , amount: show $ entry ^. cbeTxNum
       , mCurrency: Nothing
       }
-    , { id: "1"
+    , { key: "1"
       , label: translate (I18nL.common <<< I18nL.cTotalOutput) lang
       , amount: formatADA (entry ^. cbeTotalSent) lang
       , mCurrency: Just ADA
       }
     -- TODO: Enable it later again ([CSE-168] Remove `Est. Volume` temporary)
-    -- , { id: "2"
+    -- , { key: "2"
     --   , label: translate (I18nL.block <<< I18nL.blEstVolume) lang
     --   -- TODO: We do need real data here
     --   , amount: formatADA (mkCoin "0") lang
     --   , mCurrency: Just ADA
     --   }
-    , { id: "3"
+    , { key: "3"
       , label: translate (I18nL.block <<< I18nL.blFees) lang
       -- TODO: We do need real data here
       , amount: formatADA (mkCoin "0") lang
       , mCurrency: Just ADA
       }
-    , { id: "4"
+    , { key: "4"
       , label: translate (I18nL.common <<< I18nL.cSlot) lang
       , amount: show $ entry ^. cbeSlot
       , mCurrency: Nothing
@@ -116,7 +116,7 @@ mkSummaryItems lang (CBlockEntry entry) =
 summaryRow :: SummaryRowItem -> P.HTML Action
 summaryRow item =
     S.div ! S.className "row row__summary"
-          ! P.key item.id
+          ! P.key item.key
           $ do
           S.div ! S.className "column column__label"
                 $ S.text item.label
@@ -148,7 +148,7 @@ blockSummaryView block lang =
 type HashItems = Array HashRowItem
 
 type HashRowItem =
-    { id :: String
+    { key :: String
     , label :: String
     , hash :: String
     , link :: Maybe String
@@ -156,17 +156,17 @@ type HashRowItem =
 
 mkHashItems :: Language -> CBlockSummary -> HashItems
 mkHashItems lang (CBlockSummary blockSummery) =
-    [ { id: "0"
+    [ { key: "0"
       , label: translate (I18nL.common <<< I18nL.cHash) lang
       , hash: blockSummery ^. (cbsEntry <<< _CBlockEntry <<< cbeBlkHash <<< _CHash)
       , link: Nothing
       }
-    , { id: "1"
+    , { key: "1"
       , label: translate (I18nL.block <<< I18nL.blPrevBlock) lang
       , hash: blockSummery ^. (cbsPrevHash <<< _CHash)
       , link: Just <<< toUrl <<< Block $ blockSummery ^. cbsPrevHash
       }
-    , { id: "2"
+    , { key: "2"
       , label: translate (I18nL.block <<< I18nL.blNextBlock) lang
       , hash: case blockSummery ^. cbsNextHash of
           Nothing -> translate (I18nL.common <<< I18nL.cNotAvailable) lang
@@ -175,7 +175,7 @@ mkHashItems lang (CBlockSummary blockSummery) =
           Nothing -> Nothing
           Just hash -> Just <<< toUrl $ Block hash
       }
-    , { id: "3"
+    , { key: "3"
       , label: translate (I18nL.block <<< I18nL.blRoot) lang
       , hash: blockSummery ^. (cbsMerkleRoot <<< _CHash)
       , link: Nothing
@@ -186,7 +186,7 @@ mkHashItems lang (CBlockSummary blockSummery) =
 hashesRow :: HashRowItem -> P.HTML Action
 hashesRow item =
     S.div ! S.className "row row__hashes"
-          ! P.key item.id
+          ! P.key item.key
           $ do
           S.div ! S.className "column column__label"
                 $ S.text item.label

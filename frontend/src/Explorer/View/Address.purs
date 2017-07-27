@@ -76,7 +76,7 @@ addressQr _ lang =
                 $ S.text (translate (I18nL.address <<< I18nL.addScan) lang)
 
 type SummaryRowItem =
-    { id :: String -- needed by React https://facebook.github.io/react/docs/lists-and-keys.html
+    { key :: String -- needed by React https://facebook.github.io/react/docs/lists-and-keys.html
     , label :: String
     , value :: String
     , mCurrency :: Maybe CCurrency
@@ -86,24 +86,24 @@ type SummaryItems = Array SummaryRowItem
 
 addressDetailRowItems :: CAddressSummary -> Language -> SummaryItems
 addressDetailRowItems (CAddressSummary address) lang =
-    [ { id: "0"
+    [ { key: "0"
       , label: translate (I18nL.common <<< I18nL.cAddress) lang
       , value: address ^. (caAddress <<< _CAddress)
       , mCurrency: Nothing
       }
-    , { id: "1"
+    , { key: "1"
       , label: translate (I18nL.common <<< I18nL.cTransactions) lang
       , value: show $ address ^. caTxNum
       , mCurrency: Nothing
       }
-    , { id: "2"
+    , { key: "2"
       ,label: translate (I18nL.address <<< I18nL.addFinalBalance) lang
       , value: formatADA (address ^. caBalance) lang
       , mCurrency: Just ADA
       }
     ] <> if isJust (address ^. caIsRedeemed)
             -- ^ add `isRedeemed` info if available only
-              then  [ { id: "3"
+              then  [ { key: "3"
                     , label: translate (I18nL.common <<< I18nL.cAddressIsRedeemed) lang
                     , value:  if fromMaybe false (address ^. caIsRedeemed)
                                   then translate (I18nL.common <<< I18nL.cYes) lang
@@ -115,7 +115,7 @@ addressDetailRowItems (CAddressSummary address) lang =
 addressDetailRow :: SummaryRowItem -> P.HTML Action
 addressDetailRow item =
     S.div ! S.className "address-detail__row"
-          ! P.key item.id
+          ! P.key item.key
           $ do
           S.div ! S.className "address-detail__column label"
                 $ S.text item.label

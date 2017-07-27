@@ -180,38 +180,38 @@ blockColumn props =
               else S.text props.label
 
 type BlocksHeaderProps =
-    { id :: String
+    { key :: String
     , label :: String
     , clazz :: String
     }
 
 mkBlocksHeaderProps :: Language -> Array BlocksHeaderProps
 mkBlocksHeaderProps lang =
-    [ { id: "0"
+    [ { key: "0"
       , label: translate (I18nL.common <<< I18nL.cEpoch) lang
       , clazz: CSS.blocksColumnEpoch
       }
-    , { id: "1"
+    , { key: "1"
       , label: translate (I18nL.common <<< I18nL.cSlot) lang
       , clazz: CSS.blocksColumnSlot
       }
-    --, { id: "2"
+    --, { key: "2"
     --  , label: translate (I18nL.common <<< I18nL.cAge) lang
     --  , clazz: CSS.blocksColumnAge
     --  }
-    , { id: "3"
+    , { key: "3"
       , label: translate (I18nL.common <<< I18nL.cTransactions) lang
       , clazz: CSS.blocksColumnTxs
       }
-    , { id: "4"
+    , { key: "4"
       , label: translate (I18nL.common <<< I18nL.cTotalSent) lang
       , clazz: CSS.blocksColumnTotalSent
       }
-    , { id: "5"
+    , { key: "5"
       , label: translate (I18nL.common <<< I18nL.cBlockLead) lang
       , clazz: CSS.blocksColumnLead
       }
-    , { id: "6"
+    , { key: "6"
       , label: translate (I18nL.common <<< I18nL.cSize) lang
       , clazz: CSS.blocksColumnSize
       }
@@ -225,5 +225,5 @@ blocksHeaderView blocks lang =
 blockHeaderItemView :: BlocksHeaderProps -> P.HTML Action
 blockHeaderItemView props =
     S.div ! S.className props.clazz
-          ! P.key props.id
+          ! P.key props.key
           $ S.text props.label

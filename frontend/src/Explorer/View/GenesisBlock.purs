@@ -64,7 +64,7 @@ emptyView message =
           $ S.text message
 
 type SummaryRowItem =
-    { id :: String
+    { key :: String
     , label :: String
     , amount :: String
     }
@@ -73,7 +73,7 @@ type SummaryItems = Array SummaryRowItem
 
 mkSummaryItems :: Language -> CGenesisSummary -> SummaryItems
 mkSummaryItems lang (CGenesisSummary summary) =
-    [ { id: "0"
+    [ { key: "0"
       , label: translate (I18nL.genesisBlock <<< I18nL.gblNumberRedeemedAddresses) lang
       , amount: show $ summary ^. cgsNumRedeemed
       }
@@ -83,7 +83,7 @@ summaryRow :: SummaryRowItem -> P.HTML Action
 summaryRow item =
     S.div
         ! S.className "row row__summary"
-        ! P.key item.id
+        ! P.key item.key
         $ do
             S.div ! S.className "column column__label"
                   $ S.text item.label
