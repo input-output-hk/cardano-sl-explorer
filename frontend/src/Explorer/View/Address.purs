@@ -101,16 +101,20 @@ addressDetailRowItems (CAddressSummary address) lang =
       , value: formatADA (address ^. caBalance) lang
       , mCurrency: Just ADA
       }
-    ] <> if isJust (address ^. caIsRedeemed)
-            -- ^ add `isRedeemed` info if available only
-              then  [ { key: "3"
-                    , label: translate (I18nL.common <<< I18nL.cAddressIsRedeemed) lang
-                    , value:  if fromMaybe false (address ^. caIsRedeemed)
-                                  then translate (I18nL.common <<< I18nL.cYes) lang
-                                  else translate (I18nL.common <<< I18nL.cNo) lang
-                    , mCurrency: Nothing
-                    }]
-              else  []
+    ] <> optionalRedeemedRow
+    where
+        optionalRedeemedRow :: SummaryItems
+        optionalRedeemedRow =
+            if isJust (address ^. caIsRedeemed)
+               -- ^ add `isRedeemed` info if available only
+                  then  [ { key: "3"
+                        , label: translate (I18nL.common <<< I18nL.cAddressIsRedeemed) lang
+                        , value:  if fromMaybe false (address ^. caIsRedeemed)
+                                      then translate (I18nL.common <<< I18nL.cYes) lang
+                                      else translate (I18nL.common <<< I18nL.cNo) lang
+                        , mCurrency: Nothing
+                        }]
+                  else  []
 
 addressDetailRow :: SummaryRowItem -> P.HTML Action
 addressDetailRow item =
