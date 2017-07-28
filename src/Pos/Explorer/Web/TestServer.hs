@@ -63,19 +63,19 @@ explorerHandlers =
     :<|>
       apiGenesisPagesTotal
     :<|>
-      apiGenesisAddressInfo
+      apiGenesisAddressInfoPage
   where
-    apiBlocksPages        = testBlocksPages
-    apiBlocksPagesTotal   = testBlocksPagesTotal
-    apiBlocksSummary      = testBlocksSummary
-    apiBlocksTxs          = testBlocksTxs
-    apiTxsLast            = testTxsLast
-    apiTxsSummary         = testTxsSummary
-    apiAddressSummary     = testAddressSummary
-    apiEpochSlotSearch    = testEpochSlotSearch
-    apiGenesisSummary     = testGenesisSummary
-    apiGenesisPagesTotal  = testGenesisPagesTotal
-    apiGenesisAddressInfo = testGenesisAddressInfo
+    apiBlocksPages              = testBlocksPages
+    apiBlocksPagesTotal         = testBlocksPagesTotal
+    apiBlocksSummary            = testBlocksSummary
+    apiBlocksTxs                = testBlocksTxs
+    apiTxsLast                  = testTxsLast
+    apiTxsSummary               = testTxsSummary
+    apiAddressSummary           = testAddressSummary
+    apiEpochSlotSearch          = testEpochSlotSearch
+    apiGenesisSummary           = testGenesisSummary
+    apiGenesisPagesTotal        = testGenesisPagesTotal
+    apiGenesisAddressInfoPage   = testGenesisAddressInfoPage
 
 --------------------------------------------------------------------------------
 -- sample data --
@@ -200,31 +200,46 @@ testEpochSlotSearch _ _ = pure . pure $ [CBlockEntry
 testGenesisSummary
     :: Handler (Either ExplorerError CGenesisSummary)
 testGenesisSummary = pure . pure $ CGenesisSummary
-    { cgsNumTotal    = 2
-    , cgsNumRedeemed = 1
+    { cgsNumTotal        = 5
+    , cgsNumRedeemed     = 2
+    , cgsNumRemaining    = 3
+    , cgsAmountRedeemed  = mkCCoin $ mkCoin 15000000
+    , cgsAmountRemaining = mkCCoin $ mkCoin 2225295000000
     }
 
 testGenesisPagesTotal
     :: Maybe Word
+    -> Maybe Bool
     -> Handler (Either ExplorerError Integer)
-testGenesisPagesTotal _ = pure $ pure 2
+testGenesisPagesTotal _ redeemed = pure . pure $ if isJust redeemed then 1 else 2
 
-testGenesisAddressInfo
+testGenesisAddressInfoPage
     :: Maybe Word
     -> Maybe Word
-    -> Handler (Either ExplorerError [CGenesisAddressInfo])
-testGenesisAddressInfo _ _ = pure . pure $ [
-    -- Commenting out RSCoin addresses until they can actually be displayed.
-    -- See comment in src/Pos/Explorer/Web/ClientTypes.hs for more information.
-    CGenesisAddressInfo
-    { cgaiCardanoAddress = CAddress "3meLwrCDE4C7RofEdkZbUuR75ep3EcTmZv9ebcdjfMtv5H"
-    -- , cgaiRSCoinAddress  = CAddress "JwvXUQ31cvrFpqqtx6fB-NOp0Q-eGQs74yXMGa-72Ak="
-    , cgaiGenesisAmount  = mkCCoin $ mkCoin 15000000
-    , cgaiIsRedeemed     = False
-    },
-    CGenesisAddressInfo
-    { cgaiCardanoAddress = CAddress "3mfaPhQ8ewtmyi7tvcxo1TXhGh5piePbjkqgz49Jo2wpV9"
-    -- , cgaiRSCoinAddress  = CAddress "l-47iKlYk1xlyCaxoPiCHNhPQ9PTsHWnXKl6Nk9dwac="
-    , cgaiGenesisAmount  = mkCCoin $ mkCoin 2225295000000
-    , cgaiIsRedeemed     = True
-    }]
+    -> Maybe Bool
+    -> Handler (Either ExplorerError (Integer, [CGenesisAddressInfo]))
+testGenesisAddressInfoPage _ _ redeemed =
+    pure . pure $ (total, maybeFilterRedeemed addressInfos)
+    where
+      total = if isJust redeemed then 1 else 2
+      maybeFilterRedeemed addressesInfo =
+          case redeemed of
+              Nothing    -> addressesInfo
+              Just False -> filter (not . cgaiIsRedeemed) addressesInfo
+              Just True  -> filter cgaiIsRedeemed addressesInfo
+
+      addressInfos = [
+          -- Commenting out RSCoin addresses until they can actually be displayed.
+          -- See comment in src/Pos/Explorer/Web/ClientTypes.hs for more information.
+          CGenesisAddressInfo
+          { cgaiCardanoAddress = CAddress "3meLwrCDE4C7RofEdkZbUuR75ep3EcTmZv9ebcdjfMtv5H"
+          -- , cgaiRSCoinAddress  = CAddress "JwvXUQ31cvrFpqqtx6fB-NOp0Q-eGQs74yXMGa-72Ak="
+          , cgaiGenesisAmount  = mkCCoin $ mkCoin 15000000
+          , cgaiIsRedeemed     = False
+          },
+          CGenesisAddressInfo
+          { cgaiCardanoAddress = CAddress "3mfaPhQ8ewtmyi7tvcxo1TXhGh5piePbjkqgz49Jo2wpV9"
+          -- , cgaiRSCoinAddress  = CAddress "l-47iKlYk1xlyCaxoPiCHNhPQ9PTsHWnXKl6Nk9dwac="
+          , cgaiGenesisAmount  = mkCCoin $ mkCoin 2225295000000
+          , cgaiIsRedeemed     = True
+          }]

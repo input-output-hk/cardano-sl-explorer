@@ -40,6 +40,7 @@ translation =
         , cUnknown: "Unknown"
         , cTotalOutput: "Total Output"
         , cOf: "of"
+        , cAll: "All"
         , cNotAvailable: "not available"
         , cLoading: "Loading..."
         , cBack2Dashboard: "Back to Dashboard"
@@ -121,9 +122,14 @@ translation =
     , genesisBlock:
         { gblNotFound: "Genesis block not found."
         , gblNumberRedeemedAddresses: "Redeemed addresses"
+        , gblNumberAddressesToRedeem: "Addresses left to redeem"
+        , gblNumberRedeemedAmount: "Redeemed amount"
+        , gblNumberAmountToRedeem: "Amount left to redeem"
         , gblAddressesNotFound: "Addresses do not exists."
         , gblAddressesError: "Error while trying to load addresses."
         , gblAddressRedeemAmount: "Redeemed amount"
+        , gblAddressIsRedeemed: "Redeemed"
+        , gblAddressIsNotRedeemed: "Not redeemed"
         }
     , footer:
         { fooResources: "Resources"
