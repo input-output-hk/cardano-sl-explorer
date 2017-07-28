@@ -39,6 +39,7 @@ translation =
         , cUnknown: "不明"
         , cTotalOutput: "合計アウトプット"
         , cOf: "of"
+        , cAll: "JP - All"
         , cNotAvailable: "データがありません"
         , cLoading: "ロード中..."
         , cBack2Dashboard: "ダッシュボードに戻る"
@@ -120,10 +121,14 @@ translation =
     , genesisBlock:
         { gblNotFound: "ジェネシス・ブロックは見つかりませんでした"
         , gblNumberRedeemedAddresses: "還元済みアドレス"
+        , gblNumberAddressesToRedeem: "JP - Addresses left to redeem"
+        , gblNumberRedeemedAmount: "JP - Redeemed amount"
+        , gblNumberAmountToRedeem: "JP - Amount left to redeem"
         , gblAddressesNotFound: "そのアドレスは存在しません"
         , gblAddressesError: "アドレス読み込み中にエラーが発生しました."
         , gblAddressRedeemAmount: "還元される額"
         , gblAddressIsRedeemed: "還元済み"
+        , gblAddressIsNotRedeemed: "JP - not redeemed"
         }
     , footer:
         { fooResources: "Resources"

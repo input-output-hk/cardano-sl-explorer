@@ -52,6 +52,7 @@ type Common =
     , cUnknown :: String
     , cTotalOutput :: String
     , cOf :: String
+    , cAll :: String
     , cNotAvailable :: String
     , cLoading :: String
     , cBack2Dashboard :: String
@@ -154,10 +155,14 @@ type Block =
 type GenesisBlock =
     { gblNotFound :: String
     , gblNumberRedeemedAddresses :: String
+    , gblNumberAddressesToRedeem :: String
+    , gblNumberRedeemedAmount :: String
+    , gblNumberAmountToRedeem :: String
     , gblAddressesNotFound :: String
     , gblAddressesError :: String
     , gblAddressRedeemAmount :: String
     , gblAddressIsRedeemed :: String
+    , gblAddressIsNotRedeemed :: String
     }
 
 -- translations of footer
