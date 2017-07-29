@@ -13,7 +13,7 @@ import Data.Foldable (for_)
 import Data.Lens ((^.))
 import Data.Maybe (Maybe(..))
 import Explorer.I18n.Lang (Language, translate)
-import Explorer.I18n.Lenses (cGenesis, cAddress, cAddresses, cAll, cOf, common, cLoading, cNo, cSummary, cYes, gblAddressesError, gblAddressesNotFound, gblAddressRedeemAmount, gblAddressIsRedeemed, gblAddressIsNotRedeemed, gblNotFound, gblNumberRedeemedAddresses, gblNumberAddressesToRedeem, gblNumberRedeemedAmount, gblNumberAmountToRedeem, genesisBlock) as I18nL
+import Explorer.I18n.Lenses (cGenesis, cAddress, cAddresses, cAll, cOf, common, cLoading, cNo, cSummary, cYes, gblAddressesError, gblAddressesNotFound, gblAddressRedeemAmount, gblAddressIsRedeemed, gblAddressIsNotRedeemed, gblNotFound, gblNumberRedeemedAddresses, gblNumberAddressesToRedeem, gblNumberRedeemedAmount, gblNumberAmountToRedeem, genesisBlock, cAddressIsRedeemed) as I18nL
 import Explorer.Lenses.State (currentCGenesisAddressInfos, currentCGenesisSummary, gblAddressInfosPageNumber, gblAddressInfosPagination, gblAddressInfosPaginationEditable, gblLoadingAddressInfosPagination, gblAddressInfosMaxPageNumber, genesisBlockViewState, lang, viewStates)
 import Explorer.Routes (Route(..), toUrl)
 import Explorer.State (minPagination)
