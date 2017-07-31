@@ -350,32 +350,49 @@ getAddressSummary
 getAddressSummary cAddr = do
     addr <- cAddrToAddr cAddr
 
-    when (isAddressUnknown addr) $
+    when (getAddressType addr == CUnknownAddress) $
         throwM $ Internal "Unknown address type"
 
-    balance <- mkCCoin . fromMaybe (mkCoin 0) <$> EX.getAddrBalance addr
+    balance <- fromMaybe (mkCoin 0) <$> EX.getAddrBalance addr
     txIds <- getNewestFirst <$> EX.getAddrHistory addr
-    transactions <- forM txIds $ \id -> do
-        extra <- getTxExtraOrFail id
-        tx <- getTxMain id extra
-        pure $ makeTxBrief tx extra
-    pure CAddressSummary {
-        caAddress = cAddr,
-        caType = getAddressType addr,
-        caTxNum = fromIntegral $ length transactions,
-        caBalance = balance,
-        caTxList = transactions
-    }
+    transactions <- forM txIds txIdToTxBrief
+
+    isRedeemed <- do
+        if getAddressType addr /= CRedeemAddress
+            then pure Nothing
+            else do
+                redeemAddressCoinPairs <- getRedeemAddressCoinPairs
+                let mGenesisBalance = snd <$> (head $
+                        filter (\(addr', _) -> addr == addr') redeemAddressCoinPairs)
+                genesisBalance <- maybeThrow addressNotFound mGenesisBalance
+                pure $ Just (balance /= genesisBalance)
+
+    pure CAddressSummary
+        { caAddress = cAddr
+        , caType = getAddressType addr
+        , caTxNum = fromIntegral $ length transactions
+        , caBalance = mkCCoin balance
+        , caTxList = transactions
+        , caIsRedeemed = isRedeemed
+        }
   where
-    isAddressUnknown = \case
-        UnknownAddressType _ _ -> True
-        _ -> False
     getAddressType :: Address -> CAddressType
     getAddressType = \case
         PubKeyAddress _ _ -> CPubKeyAddress
         ScriptAddress _ -> CScriptAddress
         RedeemAddress _ -> CRedeemAddress
         UnknownAddressType _ _ -> CUnknownAddress
+
+    txIdToTxBrief :: ExplorerMode m => TxId -> m CTxBrief
+    txIdToTxBrief txId = do
+        extra <- getTxExtraOrFail txId
+        tx    <- getTxMain txId extra
+        pure  $ makeTxBrief tx extra
+
+    addressNotFound :: ExplorerError
+    addressNotFound = Internal "Redeem address not found in genesis."
+
+
 
 
 -- | Get transaction summary from transaction id. Looks at both the database
@@ -495,22 +512,6 @@ getTxSummary cTxId = do
             , ctsOutputs         = map (second mkCCoin) txOutputs
             }
 
-getRedeemAddressCoinPairs :: ExplorerMode m => m [(Address, Coin)]
-getRedeemAddressCoinPairs = do
-    genesisUtxo <- Ether.asks' npCustomUtxo
-    let addressCoinPairs = utxoToAddressCoinPairs genesisUtxo
-        redeemOnly = filter (isRedeemAddress . fst) addressCoinPairs
-    pure redeemOnly
-
-isRedeemAddress :: Address -> Bool
-isRedeemAddress (RedeemAddress _) = True
-isRedeemAddress _                 = False
-
-isAddressRedeemed :: MonadDBRead m => Address -> Coin -> m Bool
-isAddressRedeemed address genesisBalance = do
-  currentBalance <- fromMaybe (mkCoin 0) <$> EX.getAddrBalance address
-  pure $ currentBalance /= genesisBalance
-
 getGenesisSummary
     :: ExplorerMode m
     => m CGenesisSummary
@@ -527,6 +528,7 @@ getGenesisSummary = do
         , cgsAmountRedeemed  = mkCCoin amountRedeemed
         , cgsAmountRemaining = mkCCoin amountRemaining
         }
+
   where
     folder (address, genesisBalance) accum@(len, numRedeemed, amountRedeemed, amountRemaining) = do
         currentBalance <- fromMaybe (mkCoin 0) <$> EX.getAddrBalance address
@@ -566,6 +568,7 @@ toGenesisAddressInfo (address, coin) = do
         , ..
         }
 
+-- | Get total genesis pages.
 getGenesisPagesTotal
     :: ExplorerMode m
     => Word
@@ -663,6 +666,21 @@ epochSlotSearch epochIndex slotIndex = do
 -- Helpers
 --------------------------------------------------------------------------------
 
+getRedeemAddressCoinPairs :: ExplorerMode m => m [(Address, Coin)]
+getRedeemAddressCoinPairs = do
+    genesisUtxo <- Ether.asks' npCustomUtxo
+    let addressCoinPairs = utxoToAddressCoinPairs genesisUtxo
+        redeemOnly = filter (isRedeemAddress . fst) addressCoinPairs
+    pure redeemOnly
+  where
+    isRedeemAddress :: Address -> Bool
+    isRedeemAddress (RedeemAddress _) = True
+    isRedeemAddress _                 = False
+
+isAddressRedeemed :: MonadDBRead m => Address -> Coin -> m Bool
+isAddressRedeemed address initialBalance = do
+  currentBalance <- fromMaybe (mkCoin 0) <$> EX.getAddrBalance address
+  pure $ currentBalance /= initialBalance
 
 makeTxBrief :: Tx -> TxExtra -> CTxBrief
 makeTxBrief tx extra = toTxBrief (TxInternal extra tx)

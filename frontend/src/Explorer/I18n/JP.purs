@@ -31,6 +31,7 @@ translation =
         , cTotalSent: "総送信額"
         , cBlockLead: "スロットリーダー"
         , cSize: "サイズ (bytes)"
+        , cAddressIsRedeemed: "還元済み"
         , cExpand: "開く"
         , cCollapse: "閉じる"
         , cNoData: "データなし"

@@ -1,4 +1,3 @@
-
 -- | Detail page of a `genesis block` https://cardanodocs.com/technical/blocks/#genesis-block
 
 module Explorer.View.GenesisBlock
@@ -14,7 +13,7 @@ import Data.Foldable (for_)
 import Data.Lens ((^.))
 import Data.Maybe (Maybe(..))
 import Explorer.I18n.Lang (Language, translate)
-import Explorer.I18n.Lenses (cGenesis, cAddress, cAddresses, cAll, cOf, common, cLoading, cNo, cSummary, cYes, gblAddressesError, gblAddressesNotFound, gblAddressRedeemAmount, gblAddressIsRedeemed, gblAddressIsNotRedeemed, gblNotFound, gblNumberRedeemedAddresses, gblNumberAddressesToRedeem, gblNumberRedeemedAmount, gblNumberAmountToRedeem, genesisBlock) as I18nL
+import Explorer.I18n.Lenses (cGenesis, cAddress, cAddresses, cAddressIsRedeemed, cAll, cOf, common, cLoading, cNo, cSummary, cYes, gblAddressesError, gblAddressesNotFound, gblAddressRedeemAmount, gblAddressIsRedeemed, gblAddressIsNotRedeemed, gblNotFound, gblNumberRedeemedAddresses, gblNumberAddressesToRedeem, gblNumberRedeemedAmount, gblNumberAmountToRedeem, genesisBlock) as I18nL
 import Explorer.Lenses.State (currentCGenesisAddressInfos, currentCGenesisSummary, gblAddressInfosPageNumber, gblAddressInfosPagination, gblAddressInfosPaginationEditable, gblLoadingAddressInfosPagination, gblAddressInfosMaxPageNumber, genesisBlockViewState, lang, viewStates)
 import Explorer.Routes (Route(..), toUrl)
 import Explorer.State (minPagination)
@@ -65,7 +64,7 @@ emptyView message =
           $ S.text message
 
 type SummaryRowItem =
-    { id :: String
+    { key :: String
     , label :: String
     , amount :: String
     , mCurrency :: Maybe CCurrency
@@ -73,25 +72,26 @@ type SummaryRowItem =
 
 type SummaryItems = Array SummaryRowItem
 
+
 mkSummaryItems :: State -> CGenesisSummary -> SummaryItems
 mkSummaryItems state (CGenesisSummary summary) =
     let lang' = state ^. lang in
-    [ { id: "0"
+    [ { key: "0"
       , label: translate (I18nL.genesisBlock <<< I18nL.gblNumberRedeemedAddresses) lang'
       , amount: show $ summary ^. cgsNumRedeemed
       , mCurrency: Nothing
       }
-    , { id: "2"
+    , { key: "2"
       , label: translate (I18nL.genesisBlock <<< I18nL.gblNumberAddressesToRedeem) lang'
       , amount: show $ summary ^. cgsNumRemaining
       , mCurrency: Nothing
       }
-    , { id: "3"
+    , { key: "3"
       , label: translate (I18nL.genesisBlock <<< I18nL.gblNumberRedeemedAmount) lang'
       , amount: formatADA (summary ^. cgsAmountRedeemed) lang'
       , mCurrency: Just ADA
       }
-    , { id: "4"
+    , { key: "4"
       , label: translate (I18nL.genesisBlock <<< I18nL.gblNumberAmountToRedeem) lang'
       , amount: formatADA (summary ^. cgsAmountRemaining) lang'
       , mCurrency: Just ADA
@@ -103,7 +103,7 @@ summaryRow :: SummaryRowItem -> P.HTML Action
 summaryRow item =
     S.div
         ! S.className "row row__summary"
-        ! P.key item.id
+        ! P.key item.key
         $ do
             S.div ! S.className "column column__label"
                   $ S.text item.label
@@ -132,7 +132,7 @@ mkAddressInfosHeaderProps lang =
     , { label: translate (I18nL.genesisBlock <<< I18nL.gblAddressRedeemAmount) lang
       , clazz: "amount"
       }
-    , { label: translate (I18nL.genesisBlock <<< I18nL.gblAddressIsRedeemed) lang
+    , { label: translate (I18nL.common <<< I18nL.cAddressIsRedeemed) lang
       , clazz: "redeemed"
       }
     ]

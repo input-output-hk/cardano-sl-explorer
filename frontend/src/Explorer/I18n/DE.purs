@@ -31,6 +31,7 @@ translation =
         , cTotalSent: "Insgesamt gesendet"
         , cBlockLead: "Weitergegeben durch"
         , cSize: "Größe (bytes)"
+        , cAddressIsRedeemed: "eingelöst"
         , cExpand: "Aufklappen"
         , cCollapse: "Zuklappen"
         , cNoData: "Keine Daten"

@@ -85,11 +85,12 @@ posixTime = utcTimeToPOSIXSeconds (parseTimeOrError True defaultTimeLocale "%F" 
 
 sampleAddressSummary :: CAddressSummary
 sampleAddressSummary = CAddressSummary
-    { caAddress = CAddress "1fi9sA3pRt8bKVibdun57iyWG9VsWZscgQigSik6RHoF5Mv"
-    , caType    = CPubKeyAddress
-    , caTxNum   = 0
-    , caBalance = mkCCoin $ mkCoin 0
-    , caTxList  = []
+    { caAddress    = CAddress "1fi9sA3pRt8bKVibdun57iyWG9VsWZscgQigSik6RHoF5Mv"
+    , caType       = CPubKeyAddress
+    , caTxNum      = 0
+    , caBalance    = mkCCoin $ mkCoin 0
+    , caTxList     = []
+    , caIsRedeemed = Just True
     }
 ----------------------------------------------------------------
 -- Test handlers

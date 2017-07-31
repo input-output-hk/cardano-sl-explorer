@@ -44,6 +44,7 @@ type Common =
     , cTotalSent :: String
     , cBlockLead :: String
     , cSize :: String
+    , cAddressIsRedeemed :: String
     , cExpand :: String
     , cCollapse :: String
     , cNoData :: String

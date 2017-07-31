@@ -243,14 +243,15 @@ data CAddressType =
     | CScriptAddress
     | CRedeemAddress
     | CUnknownAddress
-    deriving (Show, Generic)
+    deriving (Show, Generic, Eq)
 
 data CAddressSummary = CAddressSummary
-    { caAddress :: !CAddress
-    , caType    :: !CAddressType
-    , caTxNum   :: !Word
-    , caBalance :: !CCoin
-    , caTxList  :: ![CTxBrief]
+    { caAddress    :: !CAddress
+    , caType       :: !CAddressType
+    , caTxNum      :: !Word
+    , caBalance    :: !CCoin
+    , caTxList     :: ![CTxBrief]
+    , caIsRedeemed :: !(Maybe Bool)
     } deriving (Show, Generic)
 
 data CTxBrief = CTxBrief

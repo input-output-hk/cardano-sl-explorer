@@ -41,6 +41,7 @@ mkEmptyCAddressSummary = CAddressSummary
     , caTxNum: 0
     , caBalance: mkCoin "0"
     , caTxList: []
+    , caIsRedeemed: Nothing
     }
 
 -- | Update txs of a `CAddressSummary`

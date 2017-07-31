@@ -31,6 +31,7 @@ translation =
         , cTotalSent: "Total Sent"
         , cBlockLead: "Slot leader"
         , cSize: "Size (bytes)"
+        , cAddressIsRedeemed: "Redeemed"
         , cExpand: "Expand"
         , cCollapse: "Collapse"
         , cNoData: "No data"
