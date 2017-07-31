@@ -13,7 +13,7 @@ import Data.Foldable (for_)
 import Data.Lens ((^.))
 import Data.Maybe (Maybe(..))
 import Explorer.I18n.Lang (Language, translate)
-import Explorer.I18n.Lenses (cGenesis, cAddress, cAddresses, cAll, cOf, common, cLoading, cNo, cSummary, cYes, gblAddressesError, gblAddressesNotFound, gblAddressRedeemAmount, gblAddressIsRedeemed, gblAddressIsNotRedeemed, gblNotFound, gblNumberRedeemedAddresses, gblNumberAddressesToRedeem, gblNumberRedeemedAmount, gblNumberAmountToRedeem, genesisBlock, cAddressIsRedeemed) as I18nL
+import Explorer.I18n.Lenses (cGenesis, cAddress, cAddresses, cAddressIsRedeemed, cAll, cOf, common, cLoading, cNo, cSummary, cYes, gblAddressesError, gblAddressesNotFound, gblAddressRedeemAmount, gblAddressIsRedeemed, gblAddressIsNotRedeemed, gblNotFound, gblNumberRedeemedAddresses, gblNumberAddressesToRedeem, gblNumberRedeemedAmount, gblNumberAmountToRedeem, genesisBlock) as I18nL
 import Explorer.Lenses.State (currentCGenesisAddressInfos, currentCGenesisSummary, gblAddressInfosPageNumber, gblAddressInfosPagination, gblAddressInfosPaginationEditable, gblLoadingAddressInfosPagination, gblAddressInfosMaxPageNumber, genesisBlockViewState, lang, viewStates)
 import Explorer.Routes (Route(..), toUrl)
 import Explorer.State (minPagination)
@@ -76,22 +76,22 @@ type SummaryItems = Array SummaryRowItem
 mkSummaryItems :: State -> CGenesisSummary -> SummaryItems
 mkSummaryItems state (CGenesisSummary summary) =
     let lang' = state ^. lang in
-    [ { id: "0"
+    [ { key: "0"
       , label: translate (I18nL.genesisBlock <<< I18nL.gblNumberRedeemedAddresses) lang'
       , amount: show $ summary ^. cgsNumRedeemed
       , mCurrency: Nothing
       }
-    , { id: "2"
+    , { key: "2"
       , label: translate (I18nL.genesisBlock <<< I18nL.gblNumberAddressesToRedeem) lang'
       , amount: show $ summary ^. cgsNumRemaining
       , mCurrency: Nothing
       }
-    , { id: "3"
+    , { key: "3"
       , label: translate (I18nL.genesisBlock <<< I18nL.gblNumberRedeemedAmount) lang'
       , amount: formatADA (summary ^. cgsAmountRedeemed) lang'
       , mCurrency: Just ADA
       }
-    , { id: "4"
+    , { key: "4"
       , label: translate (I18nL.genesisBlock <<< I18nL.gblNumberAmountToRedeem) lang'
       , amount: formatADA (summary ^. cgsAmountRemaining) lang'
       , mCurrency: Just ADA
