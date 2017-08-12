@@ -14,7 +14,7 @@ import Data.Maybe (Maybe(..))
 import Data.Tuple (Tuple)
 import Explorer.Api.Helper (decodeResult)
 import Explorer.Api.Types (Endpoint, EndpointError(..))
-import Explorer.Types.State (CBlockEntries, CTxBriefs, CTxEntries, PageNumber(..), PageSize(..), CGenesisAddressInfos)
+import Explorer.Types.State (CBlockEntries, CGenesisAddressInfos, CTxBriefs, CTxEntries, GenesisBlockPagination(..), PageNumber(..), PageSize(..))
 import Global (encodeURIComponent)
 import Network.HTTP.Affjax (AJAX, AffjaxRequest, affjax, defaultRequest)
 import Network.HTTP.Affjax.Request (class Requestable)
@@ -89,9 +89,14 @@ searchEpoch epoch mSlot = get $ "search/epoch/" <> show epochIndex <> slotQuery 
 fetchGenesisSummary :: forall eff. Aff (ajax::AJAX | eff) CGenesisSummary
 fetchGenesisSummary = get "genesis/summary/"
 
-fetchGenesisAddressInfo :: forall eff. PageNumber -> PageSize -> Aff (ajax::AJAX | eff) CGenesisAddressInfos
-fetchGenesisAddressInfo (PageNumber pNumber) (PageSize pSize) =
-    get $ "genesis/address/?page=" <> show pNumber <> "&pageSize=" <> show pSize
-
-fetchGenesisAddressInfoTotalPages :: forall eff. PageSize -> Aff (ajax::AJAX | eff) Int
-fetchGenesisAddressInfoTotalPages (PageSize pSize)= get $ "genesis/address/pages/total?pageSize=" <> show pSize
+fetchGenesisAddressInfo :: forall eff. GenesisBlockPagination -> PageNumber -> PageSize -> Aff (ajax::AJAX | eff) (Tuple Int CGenesisAddressInfos)
+fetchGenesisAddressInfo pagination (PageNumber pNumber) (PageSize pSize) =
+    get $ "genesis/address/pages/?"
+              <> "page=" <> show pNumber
+              <> "&pageSize=" <> show pSize
+              <> redeemedQuery pagination
+    where
+        redeemedQuery :: GenesisBlockPagination -> String
+        redeemedQuery GBPaginateAllAddresses = ""
+        redeemedQuery GBPaginateRedeemedAddresses = "&redeemed=true"
+        redeemedQuery GBPaginateNonRedeemedAddresses = "&redeemed=false"

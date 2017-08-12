@@ -18,7 +18,7 @@ import           Control.Lens                   ((<<.=))
 import qualified Data.Set                       as S
 import           Data.Time.Units                (Millisecond)
 import           Ether.TaggedTrans              ()
-import           Formatting                     (int, sformat, (%))
+import           Formatting                     (int, sformat, shown, (%))
 import qualified GHC.Exts                       as Exts
 import           Network.EngineIO               (SocketId)
 import           Network.EngineIO.Wai           (WaiMonad, toWaiApplication, waiAPI)
@@ -27,17 +27,16 @@ import           Network.SocketIO               (RoutingTable, Socket,
                                                  appendDisconnectHandler, initialize,
                                                  socketId)
 import           Network.Wai                    (Application, Middleware, Request,
-                                                 Response, pathInfo,
-                                                 responseLBS)
+                                                 Response, pathInfo, responseLBS)
 import           Network.Wai.Handler.Warp       (Settings, defaultSettings, runSettings,
                                                  setPort)
 import           Network.Wai.Middleware.Cors    (CorsResourcePolicy, cors, corsOrigins,
                                                  simpleCorsResourcePolicy)
+import           Serokell.Util.Text             (listJson)
 import           System.Wlog                    (CanLog, LoggerName, NamedPureLogger,
                                                  WithLogger, getLoggerName, logDebug,
                                                  logInfo, logWarning, modifyLoggerName,
                                                  usingLoggerName)
-import           Serokell.Util.Text             (listJson)
 
 import           Pos.Block.Types                (Blund)
 import           Pos.Core                       (addressF)
@@ -54,15 +53,18 @@ import           Pos.Explorer.Socket.Methods    (ClientEvent (..), ServerEvent (
                                                  getBlockTxs, getBlundsFromTo, getTxInfo,
                                                  notifyAddrSubscribers,
                                                  notifyBlocksLastPageSubscribers,
+                                                 notifyTxSubscribers,
                                                  notifyTxsSubscribers, startSession,
                                                  subscribeAddr, subscribeBlocksLastPage,
-                                                 subscribeTxs, unsubscribeAddr,
-                                                 unsubscribeBlocksLastPage,
+                                                 subscribeTx, subscribeTxs,
+                                                 unsubscribeAddr,
+                                                 unsubscribeBlocksLastPage, unsubscribeTx,
                                                  unsubscribeTxs)
 import           Pos.Explorer.Socket.Util       (emitJSON, forkAccompanion, on, on_,
                                                  regroupBySnd, runPeriodicallyUnless)
-import           Pos.Explorer.Web.ClientTypes   (cteId, tiToTxEntry)
-import           Pos.Explorer.Web.Server        (ExplorerMode, getMempoolTxs)
+import           Pos.Explorer.Web.ClientTypes   (cteId, ctsId, tiToCTxId, tiToTxEntry)
+import           Pos.Explorer.Web.Server        (ExplorerMode, getMempoolTxs,
+                                                 getTxSummary)
 
 
 data NotifierSettings = NotifierSettings
@@ -81,10 +83,12 @@ notifierHandler connVar loggerName = do
     _ <- asHandler' startSession
     on  (Subscribe SubAddr)            $ asHandler  subscribeAddr
     on_ (Subscribe SubBlockLastPage)   $ asHandler_ subscribeBlocksLastPage
-    on_ (Subscribe SubTx)              $ asHandler_ subscribeTxs
+    on  (Subscribe SubTx)              $ asHandler  subscribeTx
+    on_ (Subscribe SubTxs)             $ asHandler_ subscribeTxs
     on_ (Unsubscribe SubAddr)          $ asHandler_ unsubscribeAddr
     on_ (Unsubscribe SubBlockLastPage) $ asHandler_ unsubscribeBlocksLastPage
-    on_ (Unsubscribe SubTx)            $ asHandler_ unsubscribeTxs
+    on_ (Unsubscribe SubTx)            $ asHandler_ unsubscribeTx
+    on_ (Unsubscribe SubTxs)           $ asHandler_ unsubscribeTxs
 
     on_ CallMe                         $ emitJSON CallYou empty
     appendDisconnectHandler . void     $ asHandler_ finishSession
@@ -185,15 +189,24 @@ periodicPollChanges connVar closed =
             let newLocalTxs = S.toList $ mempoolTxs `S.difference` wasMempoolTxs
 
             let allTxs = newBlockchainTxs <> newLocalTxs
-            let cTxEntries = map tiToTxEntry allTxs
             txInfos <- Exts.toList . regroupBySnd <$> lift (mapM (getTxInfo @ctx) allTxs)
 
-            -- notify abuot transactions
+            -- notify about addresses w/ new transactions
             forM_ txInfos $ \(addr, cTxBriefs) -> do
                 notifyAddrSubscribers @ctx addr cTxBriefs
                 logDebug $ sformat ("Notified address "%addressF%" about "
                            %int%" transactions") addr (length cTxBriefs)
 
+            -- get `CTxSummary` from all new transactions
+            cTxSummaries <- mapM (getTxSummary . tiToCTxId) allTxs
+
+            -- notify about transaction summary updates
+            forM_ cTxSummaries $ \(cTxSummary) -> do
+                notifyTxSubscribers cTxSummary
+                logDebug $ sformat ("Broadcasted transaction summary with id=#"%shown%" ")
+                              (ctsId cTxSummary)
+
+            let cTxEntries = map tiToTxEntry allTxs
             -- notify about transactions
             unless (null cTxEntries) $ do
                 notifyTxsSubscribers @ctx cTxEntries

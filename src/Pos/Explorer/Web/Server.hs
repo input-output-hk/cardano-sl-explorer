@@ -16,6 +16,7 @@ module Pos.Explorer.Web.Server
        , topsortTxsOrFail
        , getMempoolTxs
        , getBlocksLastPage
+       , getTxSummary
        ) where
 
 import           Universum
@@ -31,7 +32,7 @@ import           Network.Wai                    (Application)
 import qualified Serokell.Util.Base64           as B64
 import           Servant.API                    ((:<|>) ((:<|>)))
 import           Servant.Server                 (Server, ServerT, serve)
-import           System.Wlog                    (logDebug)
+import           System.Wlog                    (logDebug, logWarning)
 
 import           Pos.Communication              (SendActions)
 import           Pos.Crypto                     (WithHash (..), hash, redeemPkBuild,
@@ -57,7 +58,8 @@ import           Pos.Types                      (Address (..), Coin, EpochIndex,
                                                  gbHeader, gbhConsensus,
                                                  getChainDifficulty, makeRedeemAddress,
                                                  mkCoin, siEpoch, siSlot, sumCoins,
-                                                 unsafeIntegerToCoin, unsafeSubCoin)
+                                                 unsafeAddCoin, unsafeIntegerToCoin,
+                                                 unsafeSubCoin)
 import           Pos.Util                       (maybeThrow)
 import           Pos.Util.Chrono                (NewestFirst (..))
 import           Pos.Web                        (serveImplNoTLS)
@@ -128,19 +130,19 @@ explorerHandlers _sendActions =
     :<|>
       apiGenesisPagesTotal
     :<|>
-      apiGenesisAddressInfo
+      apiGenesisAddressInfoPage
   where
-    apiBlocksPages        = getBlocksPagesDefault
-    apiBlocksPagesTotal   = getBlocksPagesTotalDefault
-    apiBlocksSummary      = catchExplorerError . getBlockSummary
-    apiBlocksTxs          = getBlockTxsDefault
-    apiTxsLast            = catchExplorerError getLastTxs
-    apiTxsSummary         = catchExplorerError . getTxSummary
-    apiAddressSummary     = catchExplorerError . getAddressSummary
-    apiEpochSlotSearch    = tryEpochSlotSearch
-    apiGenesisSummary     = catchExplorerError getGenesisSummary
-    apiGenesisPagesTotal  = getGenesisPagesTotalDefault
-    apiGenesisAddressInfo = getGenesisAddressInfoDefault
+    apiBlocksPages              = getBlocksPagesDefault
+    apiBlocksPagesTotal         = getBlocksPagesTotalDefault
+    apiBlocksSummary            = catchExplorerError . getBlockSummary
+    apiBlocksTxs                = getBlockTxsDefault
+    apiTxsLast                  = catchExplorerError getLastTxs
+    apiTxsSummary               = catchExplorerError . getTxSummary
+    apiAddressSummary           = catchExplorerError . getAddressSummary
+    apiEpochSlotSearch          = tryEpochSlotSearch
+    apiGenesisSummary           = catchExplorerError getGenesisSummary
+    apiGenesisPagesTotal        = getGenesisPagesTotalDefault
+    apiGenesisAddressInfoPage  = getGenesisAddressInfoPageDefault
 
     catchExplorerError    = try
 
@@ -156,11 +158,11 @@ explorerHandlers _sendActions =
     tryEpochSlotSearch epoch maybeSlot =
         catchExplorerError $ epochSlotSearch epoch maybeSlot
 
-    getGenesisPagesTotalDefault size =
-        catchExplorerError $ getGenesisPagesTotal (defaultPageSize size)
+    getGenesisPagesTotalDefault size redeemed =
+        catchExplorerError $ getGenesisPagesTotal (defaultPageSize size) redeemed
 
-    getGenesisAddressInfoDefault page size =
-        catchExplorerError $ getGenesisAddressInfo page (defaultPageSize size)
+    getGenesisAddressInfoPageDefault page size redeemed =
+        catchExplorerError $ getGenesisAddressInfoPage page (defaultPageSize size) redeemed
 
     defaultPageSize size = (fromIntegral $ fromMaybe 10 size)
     defaultLimit limit   = (fromIntegral $ fromMaybe 10 limit)
@@ -353,32 +355,49 @@ getAddressSummary
 getAddressSummary cAddr = do
     addr <- cAddrToAddr cAddr
 
-    when (isAddressUnknown addr) $
+    when (getAddressType addr == CUnknownAddress) $
         throwM $ Internal "Unknown address type"
 
-    balance <- mkCCoin . fromMaybe (mkCoin 0) <$> EX.getAddrBalance addr
+    balance <- fromMaybe (mkCoin 0) <$> EX.getAddrBalance addr
     txIds <- getNewestFirst <$> EX.getAddrHistory addr
-    transactions <- forM txIds $ \id -> do
-        extra <- getTxExtraOrFail id
-        tx <- getTxMain id extra
-        pure $ makeTxBrief tx extra
-    pure CAddressSummary {
-        caAddress = cAddr,
-        caType = getAddressType addr,
-        caTxNum = fromIntegral $ length transactions,
-        caBalance = balance,
-        caTxList = transactions
-    }
+    transactions <- forM txIds txIdToTxBrief
+
+    isRedeemed <- do
+        if getAddressType addr /= CRedeemAddress
+            then pure Nothing
+            else do
+                redeemAddressCoinPairs <- getRedeemAddressCoinPairs
+                let mGenesisBalance = snd <$> (head $
+                        filter (\(addr', _) -> addr == addr') redeemAddressCoinPairs)
+                genesisBalance <- maybeThrow addressNotFound mGenesisBalance
+                pure $ Just (balance /= genesisBalance)
+
+    pure CAddressSummary
+        { caAddress = cAddr
+        , caType = getAddressType addr
+        , caTxNum = fromIntegral $ length transactions
+        , caBalance = mkCCoin balance
+        , caTxList = transactions
+        , caIsRedeemed = isRedeemed
+        }
   where
-    isAddressUnknown = \case
-        UnknownAddressType _ _ -> True
-        _ -> False
     getAddressType :: Address -> CAddressType
     getAddressType = \case
         PubKeyAddress _ _ -> CPubKeyAddress
         ScriptAddress _ -> CScriptAddress
         RedeemAddress _ -> CRedeemAddress
         UnknownAddressType _ _ -> CUnknownAddress
+
+    txIdToTxBrief :: ExplorerMode ctx m => TxId -> m CTxBrief
+    txIdToTxBrief txId = do
+        extra <- getTxExtraOrFail txId
+        tx    <- getTxMain txId extra
+        pure  $ makeTxBrief tx extra
+
+    addressNotFound :: ExplorerError
+    addressNotFound = Internal "Redeem address not found in genesis."
+
+
 
 
 -- | Get transaction summary from transaction id. Looks at both the database
@@ -498,61 +517,100 @@ getTxSummary cTxId = do
             , ctsOutputs         = map (second mkCCoin) txOutputs
             }
 
-getRedeemAddressCoinPairs :: ExplorerMode ctx m => m [(Address, Coin)]
-getRedeemAddressCoinPairs = do
-    genesisUtxo <- genesisUtxoM
-    let addressCoinPairs = utxoToAddressCoinPairs genesisUtxo
-        redeemOnly = filter (isRedeemAddress . fst) addressCoinPairs
-    pure redeemOnly
-
-isRedeemAddress :: Address -> Bool
-isRedeemAddress (RedeemAddress _) = True
-isRedeemAddress _                 = False
-
-isAddressRedeemed :: MonadDBRead m => Address -> Coin -> m Bool
-isAddressRedeemed address initialBalance = do
-  currentBalance <- fromMaybe (mkCoin 0) <$> EX.getAddrBalance address
-  pure $ currentBalance /= initialBalance
-
 getGenesisSummary
     :: ExplorerMode ctx m
     => m CGenesisSummary
 getGenesisSummary = do
     redeemAddressCoinPairs <- getRedeemAddressCoinPairs
-    cgsNumRedeemed <- length <$> filterM (uncurry isAddressRedeemed) redeemAddressCoinPairs
-    pure CGenesisSummary {cgsNumTotal = length redeemAddressCoinPairs, ..}
+    -- putting all four in the same fold because all four need to fetch current balance
+    -- and validate whether it exceeds genesis balance
+    (numTotal, numRedeemed, amountRedeemed, amountRemaining) <-
+        foldrM folder (0, 0, mkCoin 0, mkCoin 0) redeemAddressCoinPairs
+    pure CGenesisSummary
+        { cgsNumTotal        = numTotal
+        , cgsNumRedeemed     = numRedeemed
+        , cgsNumRemaining    = numTotal - numRedeemed
+        , cgsAmountRedeemed  = mkCCoin amountRedeemed
+        , cgsAmountRemaining = mkCCoin amountRemaining
+        }
 
-getGenesisAddressInfo
-    :: (ExplorerMode ctx m)
-    => Maybe Word  -- ^ pageNumber
-    -> Word        -- ^ pageSize
-    -> m [CGenesisAddressInfo]
-getGenesisAddressInfo (fmap fromIntegral -> mPage) (fromIntegral -> pageSize) = do
-    redeemAddressCoinPairs <- getRedeemAddressCoinPairs
-    let pageNumber    = fromMaybe 1 mPage
-        skipItems     = (pageNumber - 1) * pageSize
-        requestedPage = take pageSize $ drop skipItems redeemAddressCoinPairs
-    mapM toGenesisAddressInfo requestedPage
   where
-    toGenesisAddressInfo :: ExplorerMode ctx m => (Address, Coin) -> m CGenesisAddressInfo
-    toGenesisAddressInfo (address, coin) = do
-        cgaiIsRedeemed <- isAddressRedeemed address coin
-        -- Commenting out RSCoin address until it can actually be displayed.
-        -- See comment in src/Pos/Explorer/Web/ClientTypes.hs for more information.
-        pure CGenesisAddressInfo
-            { cgaiCardanoAddress = toCAddress address
-            -- , cgaiRSCoinAddress  = toCAddress address
-            , cgaiGenesisAmount  = mkCCoin coin
-            , ..
-            }
+    folder (address, genesisBalance) accum@(len, numRedeemed, amountRedeemed, amountRemaining) = do
+        currentBalance <- fromMaybe (mkCoin 0) <$> EX.getAddrBalance address
+        if currentBalance > genesisBalance then do
+            -- Don't want to throw exception here as this endpoint is used not for serving
+            -- specific user requests, but rather general system info.
+            logWarning $ sformat
+                ("Address "%build%" has increased its balance since genesis: " %
+                    "current balance is "%build%", genesis balance is "%build)
+                address currentBalance genesisBalance
+            pure accum
+        else
+            let numRedeemedDelta     = if currentBalance /= genesisBalance then 1 else 0
+                amountRedeemedDelta  = genesisBalance `unsafeSubCoin` currentBalance
+                len'             = len + 1
+                numRedeemed'     = numRedeemed + numRedeemedDelta
+                amountRedeemed'  = amountRedeemed  `unsafeAddCoin` amountRedeemedDelta
+                amountRemaining' = amountRemaining `unsafeAddCoin` currentBalance
+            in pure (len', numRedeemed', amountRedeemed', amountRemaining')
 
+filterRedeemed :: Maybe Bool -> [CGenesisAddressInfo] -> [CGenesisAddressInfo]
+filterRedeemed redeemed addressesInfo =
+  case redeemed of
+      Nothing    -> addressesInfo
+      Just False -> filter (not . cgaiIsRedeemed) addressesInfo
+      Just True  -> filter cgaiIsRedeemed addressesInfo
+
+toGenesisAddressInfo :: ExplorerMode ctx m => (Address, Coin) -> m CGenesisAddressInfo
+toGenesisAddressInfo (address, coin) = do
+    cgaiIsRedeemed <- isAddressRedeemed address coin
+    -- Commenting out RSCoin address until it can actually be displayed.
+    -- See comment in src/Pos/Explorer/Web/ClientTypes.hs for more information.
+    pure CGenesisAddressInfo
+        { cgaiCardanoAddress = toCAddress address
+        -- , cgaiRSCoinAddress  = toCAddress address
+        , cgaiGenesisAmount  = mkCCoin coin
+        , ..
+        }
+
+-- | Get total genesis pages.
 getGenesisPagesTotal
     :: ExplorerMode ctx m
     => Word
+    -> Maybe Bool
     -> m Integer
-getGenesisPagesTotal (fromIntegral -> pageSize) = do
+getGenesisPagesTotal (fromIntegral -> pageSize) redeemed = do
     redeemAddressCoinPairs <- getRedeemAddressCoinPairs
-    pure $ fromIntegral $ (length redeemAddressCoinPairs + pageSize - 1) `div` pageSize
+    totalAddresses <- case redeemed of
+        Nothing -> pure $ length redeemAddressCoinPairs
+        Just redeemedOnly -> do
+            cAddressesInfo <- mapM toGenesisAddressInfo redeemAddressCoinPairs
+            pure $ length $
+                filter ((redeemedOnly ==) . cgaiIsRedeemed) cAddressesInfo
+    pure $ fromIntegral $ (totalAddresses + pageSize - 1) `div` pageSize
+
+getGenesisAddressInfoPage
+    :: ExplorerMode ctx m
+    => Maybe Word  -- ^ pageNumber
+    -> Word        -- ^ pageSize
+    -> Maybe Bool  -- ^ redeemed
+    -> m (Integer, [CGenesisAddressInfo])
+getGenesisAddressInfoPage (fmap fromIntegral -> mPageNumber) pageSize redeemed = do
+    redeemAddressCoinPairs <- getRedeemAddressCoinPairs
+    total <- getGenesisPagesTotal pageSize redeemed
+    let pageNumber    = fromMaybe 1 mPageNumber
+        total'        = fromIntegral total
+        pageSize'     = fromIntegral pageSize
+        pageSize'' -- make sure that we have a valid pageSize
+            | pageSize' > total'  = total'
+            | pageSize' < 0       = 0
+            | otherwise           = pageSize'
+        skipItems     = (pageNumber - 1) * pageSize''
+        requestedPage = take pageSize'' $ drop skipItems redeemAddressCoinPairs
+
+    adressInfos <- filterRedeemed redeemed <$> mapM toGenesisAddressInfo requestedPage
+
+    pure (total, adressInfos)
 
 -- | Search the blocks by epoch and slot. Slot is optional.
 epochSlotSearch
@@ -605,6 +663,21 @@ epochSlotSearch epochIndex slotIndex = do
 -- Helpers
 --------------------------------------------------------------------------------
 
+getRedeemAddressCoinPairs :: ExplorerMode ctx m => m [(Address, Coin)]
+getRedeemAddressCoinPairs = do
+    genesisUtxo <- genesisUtxoM
+    let addressCoinPairs = utxoToAddressCoinPairs genesisUtxo
+        redeemOnly = filter (isRedeemAddress . fst) addressCoinPairs
+    pure redeemOnly
+  where
+    isRedeemAddress :: Address -> Bool
+    isRedeemAddress (RedeemAddress _) = True
+    isRedeemAddress _                 = False
+
+isAddressRedeemed :: MonadDBRead m => Address -> Coin -> m Bool
+isAddressRedeemed address initialBalance = do
+  currentBalance <- fromMaybe (mkCoin 0) <$> EX.getAddrBalance address
+  pure $ currentBalance /= initialBalance
 
 makeTxBrief :: Tx -> TxExtra -> CTxBrief
 makeTxBrief tx extra = toTxBrief (TxInternal extra tx)

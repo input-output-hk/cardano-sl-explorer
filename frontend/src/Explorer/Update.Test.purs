@@ -267,14 +267,14 @@ testUpdate =
                 in (gShow result) `shouldEqual` (gShow [subItem])
             it "to add another subscription"
                 let initialState' = set (socket <<< subscriptions)
-                                        [ mkSocketSubscriptionItem (SocketSubscription SubTx) SocketNoData
+                                        [ mkSocketSubscriptionItem (SocketSubscription SubTxs) SocketNoData
                                         ]
                                         initialState
                     subItem = mkSocketSubscriptionItem (SocketSubscription SubAddr) SocketNoData
                     effModel = update (SocketAddSubscription subItem) initialState'
                     state = _.state effModel
                     result = state ^. socket <<< subscriptions
-                    expected =  [ mkSocketSubscriptionItem (SocketSubscription SubTx) SocketNoData
+                    expected =  [ mkSocketSubscriptionItem (SocketSubscription SubTxs) SocketNoData
                                 , mkSocketSubscriptionItem (SocketSubscription SubAddr) SocketNoData
                                 ]
                 in (gShow result) `shouldEqual` (gShow expected)
@@ -289,7 +289,7 @@ testUpdate =
             it "to remove a subscription"
                 let subItem = mkSocketSubscriptionItem (SocketSubscription SubAddr) SocketNoData
                     initialState' = set (socket <<< subscriptions)
-                                        [ mkSocketSubscriptionItem (SocketSubscription SubTx) SocketNoData
+                                        [ mkSocketSubscriptionItem (SocketSubscription SubTxs) SocketNoData
                                         , mkSocketSubscriptionItem (SocketSubscription SubAddr) SocketNoData
                                         ]
                                         initialState
@@ -297,7 +297,7 @@ testUpdate =
                     state = _.state effModel
                     result = state ^. socket <<< subscriptions
                 in  (gShow result) `shouldEqual`
-                    (gShow [mkSocketSubscriptionItem (SocketSubscription SubTx) SocketNoData])
+                    (gShow [mkSocketSubscriptionItem (SocketSubscription SubTxs) SocketNoData])
 
         describe "uses action SocketClearSubscriptions" do
 
@@ -309,7 +309,7 @@ testUpdate =
 
             it "to remove all subscription"
                 let initialState' = set (socket <<< subscriptions)
-                                        [ mkSocketSubscriptionItem (SocketSubscription SubTx) SocketNoData
+                                        [ mkSocketSubscriptionItem (SocketSubscription SubTxs) SocketNoData
                                         , mkSocketSubscriptionItem (SocketSubscription SubAddr) SocketNoData
                                         ]
                                         initialState

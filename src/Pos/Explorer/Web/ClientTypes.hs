@@ -36,6 +36,7 @@ module Pos.Explorer.Web.ClientTypes
        , toPosixTime
        , convertTxOutputs
        , tiToTxEntry
+       , tiToCTxId
        ) where
 
 import           Universum
@@ -81,7 +82,7 @@ import           Pos.Types              (Address, AddressHash, Coin, EpochIndex,
 
 -- | Client hash
 newtype CHash = CHash Text
-    deriving (Show, Eq, Generic, Buildable, Hashable)
+    deriving (Show, Eq, Generic, Buildable, Hashable, Ord)
 
 -- | Client address. The address may be from either Cardano or RSCoin.
 newtype CAddress = CAddress Text
@@ -89,7 +90,7 @@ newtype CAddress = CAddress Text
 
 -- | Client transaction id
 newtype CTxId = CTxId CHash
-    deriving (Show, Eq, Generic, Buildable, Hashable)
+    deriving (Show, Eq, Generic, Buildable, Hashable, Ord)
 
 -- | Transformation of core hash-types to client representations and vice versa
 encodeHashHex :: Hash a -> Text
@@ -262,14 +263,15 @@ data CAddressType =
     | CScriptAddress
     | CRedeemAddress
     | CUnknownAddress
-    deriving (Show, Generic)
+    deriving (Show, Generic, Eq)
 
 data CAddressSummary = CAddressSummary
-    { caAddress :: !CAddress
-    , caType    :: !CAddressType
-    , caTxNum   :: !Word
-    , caBalance :: !CCoin
-    , caTxList  :: ![CTxBrief]
+    { caAddress    :: !CAddress
+    , caType       :: !CAddressType
+    , caTxNum      :: !Word
+    , caBalance    :: !CCoin
+    , caTxList     :: ![CTxBrief]
+    , caIsRedeemed :: !(Maybe Bool)
     } deriving (Show, Generic)
 
 data CTxBrief = CTxBrief
@@ -301,8 +303,11 @@ data CTxSummary = CTxSummary
     } deriving (Show, Generic)
 
 data CGenesisSummary = CGenesisSummary
-    { cgsNumTotal    :: !Int
-    , cgsNumRedeemed :: !Int
+    { cgsNumTotal        :: !Int
+    , cgsNumRedeemed     :: !Int
+    , cgsNumRemaining    :: !Int
+    , cgsAmountRedeemed  :: !CCoin
+    , cgsAmountRemaining :: !CCoin
     } deriving (Show, Generic)
 
 data CGenesisAddressInfo = CGenesisAddressInfo
@@ -351,6 +356,9 @@ tiTimestamp = teReceivedTime . tiExtra
 tiToTxEntry :: TxInternal -> CTxEntry
 tiToTxEntry txi@TxInternal{..} = toTxEntry (tiTimestamp txi) tiTx
 
+tiToCTxId :: TxInternal -> CTxId
+tiToCTxId = toCTxId . hash . tiTx
+
 convertTxOutputs :: [TxOut] -> [(CAddress, Coin)]
 convertTxOutputs = map (toCAddress . txOutAddress &&& txOutValue)
 
@@ -359,7 +367,7 @@ toTxBrief txi = CTxBrief {..}
   where
     tx            = tiTx txi
     ts            = tiTimestamp txi
-    ctbId         = toCTxId $ hash tx
+    ctbId         = tiToCTxId txi
     ctbTimeIssued = toPosixTime ts
     ctbInputs     = map (second mkCCoin) txinputs
     ctbOutputs    = map (second mkCCoin) txOutputs
