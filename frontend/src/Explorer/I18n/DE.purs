@@ -31,6 +31,7 @@ translation =
         , cTotalSent: "Insgesamt gesendet"
         , cBlockLead: "Weitergegeben durch"
         , cSize: "Größe (bytes)"
+        , cAddressIsRedeemed: "eingelöst"
         , cExpand: "Aufklappen"
         , cCollapse: "Zuklappen"
         , cNoData: "Keine Daten"
@@ -39,6 +40,7 @@ translation =
         , cUnknown: "Unbekannt"
         , cTotalOutput: "Gesamtausgabe"
         , cOf: "von"
+        , cAll: "Alle"
         , cNotAvailable: "nicht verfügbar"
         , cLoading: "Lade..."
         , cBack2Dashboard: "Zurück zum Dashboard"
@@ -120,10 +122,14 @@ translation =
     , genesisBlock:
         { gblNotFound: "Genesis Block existiert nicht."
         , gblNumberRedeemedAddresses: "Anzahl eingelöster Adressen"
+        , gblNumberAddressesToRedeem: "Adressen noch einzulösen"
+        , gblNumberRedeemedAmount: "Eingelöster Betrag"
+        , gblNumberAmountToRedeem: "Noch einzulösender Betrag"
         , gblAddressesNotFound: "Adressen existieren nicht."
         , gblAddressesError: "Error beim Laden der Addressen"
         , gblAddressRedeemAmount: "Einzulösender Wert"
         , gblAddressIsRedeemed: "eingelöst"
+        , gblAddressIsNotRedeemed: "nicht eingelöst"
         }
     , footer:
         { fooResources: "Ressourcen"

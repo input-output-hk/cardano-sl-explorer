@@ -132,9 +132,18 @@ type BlocksViewState =
     , blsViewPaginationEditable :: Boolean
     }
 
+data GenesisBlockPagination
+    = GBPaginateAllAddresses
+    | GBPaginateRedeemedAddresses
+    | GBPaginateNonRedeemedAddresses
+
+derive instance gGenesisBlockPagination :: Generic GenesisBlockPagination
+derive instance eqGenesisBlockPagination :: Eq GenesisBlockPagination
+
 type GenesisBlockViewState =
-    { gblAddressInfosPagination :: PageNumber
-    , gblMaxAddressInfosPagination :: RemoteData Error PageNumber
+    { gblAddressInfosPagination :: GenesisBlockPagination
+    , gblAddressInfosPageNumber :: PageNumber
+    , gblAddressInfosMaxPageNumber :: PageNumber
     , gblAddressInfosPaginationEditable :: Boolean
     , gblLoadingAddressInfosPagination :: Boolean
     }

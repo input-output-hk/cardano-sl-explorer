@@ -20,11 +20,13 @@ module Pos.Explorer.Socket.Holder
        , csBlocksSubscribers
        , csBlocksPageSubscribers
        , csBlocksOffSubscribers
+       , csTxSubscribers
        , csTxsSubscribers
        , csClients
        , ccAddress
        , ccBlockOff
        , ccConnection
+       , ccTx
        ) where
 
 import           Control.Lens             (makeClassy)
@@ -36,17 +38,19 @@ import           Serokell.Util.Concurrent (modifyTVarS)
 import           System.Wlog              (NamedPureLogger, WithLogger,
                                            launchNamedPureLog)
 
+import           Pos.Explorer.Web.ClientTypes (CTxId)
 import           Pos.Types                (Address)
 import           Universum
 
 data ClientContext = ClientContext
     { _ccAddress    :: !(Maybe Address)
     , _ccBlockOff   :: !(Maybe Word)
+    , _ccTx         :: !(Maybe CTxId)
     , _ccConnection :: !Socket
     }
 
 mkClientContext :: Socket -> ClientContext
-mkClientContext = ClientContext Nothing Nothing
+mkClientContext = ClientContext Nothing Nothing Nothing
 
 makeClassy ''ClientContext
 
@@ -61,6 +65,8 @@ data ConnectionsState = ConnectionsState
     , _csBlocksPageSubscribers :: !(S.Set SocketId)
       -- | Sessions subscribed to notifications about last page.
     , _csBlocksOffSubscribers  :: !(M.Map Word (S.Set SocketId))
+      -- | Sessions subscribed to given transaction id.
+    , _csTxSubscribers         :: !(M.Map CTxId (S.Set SocketId))
       -- | Sessions subscribed to notifications about new transactions.
     , _csTxsSubscribers        :: !(S.Set SocketId)
     }
@@ -77,6 +83,7 @@ mkConnectionsState =
     , _csBlocksSubscribers = mempty
     , _csBlocksPageSubscribers = mempty
     , _csBlocksOffSubscribers = mempty
+    , _csTxSubscribers = mempty
     , _csTxsSubscribers = mempty
     }
 

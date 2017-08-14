@@ -41,6 +41,7 @@ mkEmptyCAddressSummary = CAddressSummary
     , caTxNum: 0
     , caBalance: mkCoin "0"
     , caTxList: []
+    , caIsRedeemed: Nothing
     }
 
 -- | Update txs of a `CAddressSummary`
@@ -102,8 +103,11 @@ mkCtbInOutputs indexes =
 
 mkCGenesisSummary :: CGenesisSummary
 mkCGenesisSummary = CGenesisSummary
-    { cgsNumTotal    : 2
-    , cgsNumRedeemed : 1
+    { cgsNumTotal        : 2
+    , cgsNumRedeemed     : 1
+    , cgsNumRemaining    : 1
+    , cgsAmountRedeemed  : mkCoin "15000000"
+    , cgsAmountRemaining : mkCoin "2225295000000"
     }
 
 mkCGenesisAddressInfo :: CGenesisAddressInfo
