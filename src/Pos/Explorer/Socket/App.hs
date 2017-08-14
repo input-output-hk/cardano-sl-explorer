@@ -154,8 +154,8 @@ notifierServer notifierSettings connVar = do
         "404 - Not Found"
 
 periodicPollChanges
-    :: forall ssc ctx m.
-       (ExplorerMode ctx m, SscHelpersClass ssc)
+    :: forall ctx m.
+       (ExplorerMode ctx m)
     => ConnectionsVar -> m Bool -> m ()
 periodicPollChanges connVar closed =
     -- Runs every 5 seconds.
@@ -181,14 +181,17 @@ periodicPollChanges connVar closed =
 
             -- notify about blocks and blocks with offset
             unless (null newBlunds) $ do
-                notifyBlocksLastPageSubscribers
+                notifyBlocksLastPageSubscribers @ctx
                 logDebug $ sformat ("Blockchain updated ("%int%" blocks)")
                     (length newBlunds)
 
             newBlockchainTxs <- lift $ concat <$> forM newBlunds (getBlockTxs @SscGodTossing @ctx . fst)
             let newLocalTxs = S.toList $ mempoolTxs `S.difference` wasMempoolTxs
 
-            let allTxs = newBlockchainTxs <> newLocalTxs
+            let allTxs      = newBlockchainTxs <> newLocalTxs
+            let cTxEntries  = tiToTxEntry <$> allTxs
+            let cTxIds      = tiToCTxId <$> allTxs
+
             txInfos <- Exts.toList . regroupBySnd <$> lift (mapM (getTxInfo @ctx) allTxs)
 
             -- notify about addresses w/ new transactions
@@ -197,16 +200,16 @@ periodicPollChanges connVar closed =
                 logDebug $ sformat ("Notified address "%addressF%" about "
                            %int%" transactions") addr (length cTxBriefs)
 
-            -- get `CTxSummary` from all new transactions
-            cTxSummaries <- mapM (getTxSummary . tiToCTxId) allTxs
+            -- get `CTxSummary` from all new transactions, lift into
+            -- `ReaderT ConnectionsState m`
+            cTxSummaries <- lift $ mapM (getTxSummary @ctx) cTxIds
 
             -- notify about transaction summary updates
             forM_ cTxSummaries $ \(cTxSummary) -> do
-                notifyTxSubscribers cTxSummary
+                notifyTxSubscribers @ctx cTxSummary
                 logDebug $ sformat ("Broadcasted transaction summary with id=#"%shown%" ")
                               (ctsId cTxSummary)
 
-            let cTxEntries = map tiToTxEntry allTxs
             -- notify about transactions
             unless (null cTxEntries) $ do
                 notifyTxsSubscribers @ctx cTxEntries
@@ -221,5 +224,5 @@ notifierApp
 notifierApp settings = modifyLoggerName (<> "notifier.socket-io") $ do
     logInfo "Starting"
     connVar <- liftIO $ STM.newTVarIO mkConnectionsState
-    forkAccompanion (periodicPollChanges @ssc connVar)
+    forkAccompanion (periodicPollChanges connVar)
                     (notifierServer settings connVar)
