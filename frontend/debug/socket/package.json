@@ -10,7 +10,7 @@
     "start": "PORT=9999 node index.js"
   },
   "dependencies": {
-    "express": "^4.14.1",
+    "express": "^4.17.3",
     "randomstring": "^1.1.5",
     "socket.io": "^1.7.2"
   }
